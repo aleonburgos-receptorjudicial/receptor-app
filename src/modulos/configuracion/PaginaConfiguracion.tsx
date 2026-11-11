@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { guardarAjustes, useAjustes } from '../../db/ajustes'
 import { borrarDatosEjemplo, cargarDatosEjemplo, hayDatosEjemplo } from '../../db/ejemplo'
 import { Boton, Campo, EncabezadoPagina, Seccion } from '../../compartido/Controles'
+import { EditorCamposRetiro } from './EditorCamposRetiro'
 import { EditorLista } from './EditorLista'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoLuna } from '../../compartido/Iconos'
@@ -44,6 +45,19 @@ export function PaginaConfiguracion() {
   }
   const numero = (campo: keyof typeof umbrales) => (e: { target: { value: string } }) =>
     setUmbrales((u) => ({ ...u, [campo]: Number(e.target.value) }))
+
+  // Plazos (días restantes) para los colores de los retiros de vehículos
+  const [umbRet, setUmbRet] = useState(ajustes.umbralesRetiros)
+  const [errorRet, setErrorRet] = useState('')
+  useEffect(() => setUmbRet(ajustes.umbralesRetiros), [ajustes.umbralesRetiros])
+  const guardarUmbRet = async () => {
+    const { verde, amarillo } = umbRet
+    if (![verde, amarillo].every((n) => Number.isInteger(n) && n > 0)) return setErrorRet('Escriba números enteros mayores que cero.')
+    if (!(amarillo <= verde)) return setErrorRet('El límite del amarillo debe ser menor o igual al del verde.')
+    setErrorRet('')
+    await guardarAjustes({ umbralesRetiros: umbRet })
+    avisar('Plazos de los retiros guardados')
+  }
 
   const cargar = async () => {
     await cargarDatosEjemplo()
@@ -96,7 +110,7 @@ export function PaginaConfiguracion() {
         </div>
         {errorUmbrales && <p className="mt-2 font-bold text-rojo" role="alert">{errorUmbrales}</p>}
         <Boton className="mt-4" onClick={guardarUmbrales}>
-          Guardar plazos
+          Guardar plazos de causas
         </Boton>
       </Seccion>
 
@@ -129,9 +143,27 @@ export function PaginaConfiguracion() {
         </div>
       </Seccion>
 
+      <Seccion titulo="Retiros de vehículos: colores según los días que faltan">
+        <p className="mb-4 max-w-[65ch] text-tenue">
+          Verde: faltan más de {umbRet.verde || '…'} días. Amarillo: de {umbRet.amarillo || '…'} a {umbRet.verde || '…'} días. Naranja: de 0 a {(umbRet.amarillo || 1) - 1} días. Rojo: vencido.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Campo etiqueta="Verde si faltan más de" type="number" min={1} inputMode="numeric" value={umbRet.verde} onChange={(e) => setUmbRet((u) => ({ ...u, verde: Number(e.target.value) }))} ayuda="días" />
+          <Campo etiqueta="Amarillo desde" type="number" min={1} inputMode="numeric" value={umbRet.amarillo} onChange={(e) => setUmbRet((u) => ({ ...u, amarillo: Number(e.target.value) }))} ayuda="días restantes; menos que eso es naranja" />
+        </div>
+        {errorRet && <p className="mt-2 font-bold text-rojo" role="alert">{errorRet}</p>}
+        <Boton className="mt-4" onClick={guardarUmbRet}>
+          Guardar plazos de retiros
+        </Boton>
+      </Seccion>
+
+      <Seccion titulo="Formulario de retiros de vehículos">
+        <EditorCamposRetiro campos={ajustes.camposRetiro} />
+      </Seccion>
+
       <Seccion titulo="Datos de ejemplo">
         <p className="max-w-[65ch] text-tenue">
-          Cargue clientes, causas y boletas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
+          Cargue clientes, causas, retiros y boletas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Boton variante="secundario" onClick={cargar} disabled={conEjemplo === true}>
@@ -146,8 +178,7 @@ export function PaginaConfiguracion() {
 
       <Seccion titulo="Próximamente">
         <p className="text-tenue">
-          En las próximas fases se agregan aquí: los plazos de retiros y boletas, los medios de pago, los campos del formulario de retiros y el respaldo
-          completo de sus datos.
+          En las próximas fases se agregan aquí: los plazos de las boletas, los medios de pago y el respaldo completo de sus datos.
         </p>
       </Seccion>
     </div>

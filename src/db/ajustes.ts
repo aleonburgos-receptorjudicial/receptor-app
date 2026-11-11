@@ -7,7 +7,7 @@ export const TRIBUNAL_CURANILAHUE = 'Juzgado de Letras y Garantía de Curanilahu
 
 /** Campos de fábrica del formulario de retiros de vehículos */
 export const CAMPOS_RETIRO_BASE: CampoRetiro[] = [
-  { clave: 'rol', etiqueta: 'ROL', tipo: 'texto', visible: true, base: true, obligatorio: true },
+  { clave: 'rol', etiqueta: 'ROL', tipo: 'texto', visible: true, base: true, obligatorio: true, fijo: true },
   { clave: 'tribunal', etiqueta: 'Tribunal', tipo: 'texto', visible: true, base: true },
   { clave: 'mandante', etiqueta: 'Mandante', tipo: 'texto', visible: true, base: true },
   { clave: 'clienteId', etiqueta: 'Estudio jurídico', tipo: 'lista', visible: true, base: true },
@@ -19,9 +19,9 @@ export const CAMPOS_RETIRO_BASE: CampoRetiro[] = [
   { clave: 'anio', etiqueta: 'Año', tipo: 'numero', visible: true, base: true },
   { clave: 'color', etiqueta: 'Color', tipo: 'texto', visible: true, base: true },
   { clave: 'direccion', etiqueta: 'Dirección donde se ubicaría', tipo: 'texto', visible: true, base: true },
-  { clave: 'fechaEncargo', etiqueta: 'Fecha de encargo', tipo: 'fecha', visible: true, base: true, obligatorio: true },
-  { clave: 'fechaVencimiento', etiqueta: 'Fecha de vencimiento', tipo: 'fecha', visible: true, base: true, obligatorio: true },
-  { clave: 'estado', etiqueta: 'Estado', tipo: 'lista', visible: true, base: true },
+  { clave: 'fechaEncargo', etiqueta: 'Fecha de encargo', tipo: 'fecha', visible: true, base: true, obligatorio: true, fijo: true },
+  { clave: 'fechaVencimiento', etiqueta: 'Fecha de vencimiento', tipo: 'fecha', visible: true, base: true, obligatorio: true, fijo: true },
+  { clave: 'estado', etiqueta: 'Estado', tipo: 'lista', visible: true, base: true, fijo: true },
   { clave: 'fuerzaPublicaSolicitada', etiqueta: 'Fuerza pública solicitada', tipo: 'sino', visible: true, base: true },
   { clave: 'fechaFuerzaSolicitada', etiqueta: 'Fecha de solicitud de fuerza pública', tipo: 'fecha', visible: true, base: true },
   { clave: 'fuerzaPublicaConcedida', etiqueta: 'Fuerza pública concedida', tipo: 'sino', visible: true, base: true },
@@ -70,10 +70,27 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
   firmaCobro: 'Mercedes León Burgos — Receptora Judicial · Curanilahue',
 }
 
+/**
+ * Completa los ajustes guardados con los valores por defecto.
+ * Los campos de fábrica del formulario de retiros se mantienen siempre (con el nombre, orden y visibilidad que eligió la usuaria).
+ */
+function completar(guardado?: Partial<Ajustes>): Ajustes {
+  const a: Ajustes = { ...AJUSTES_POR_DEFECTO, ...(guardado ?? {}) }
+  const fabrica = new Map(CAMPOS_RETIRO_BASE.map((c) => [c.clave, c]))
+  const campos = a.camposRetiro
+    .filter((c) => !c.base || fabrica.has(c.clave))
+    .map((c) => {
+      const f = fabrica.get(c.clave)
+      return f ? { ...c, tipo: f.tipo, base: true, fijo: f.fijo, obligatorio: f.obligatorio, visible: f.fijo ? true : c.visible } : c
+    })
+  for (const f of CAMPOS_RETIRO_BASE) if (!campos.some((c) => c.clave === f.clave)) campos.push(f)
+  return { ...a, camposRetiro: campos }
+}
+
 /** Lee los ajustes guardados, completando con los valores por defecto lo que falte */
 export async function leerAjustes(): Promise<Ajustes> {
   const fila = await db.ajustes.get('general')
-  return { ...AJUSTES_POR_DEFECTO, ...(fila?.valor ?? {}) }
+  return completar(fila?.valor)
 }
 
 /** Guarda solo los ajustes que se indiquen, manteniendo el resto */
@@ -85,5 +102,5 @@ export async function guardarAjustes(cambios: Partial<Ajustes>): Promise<void> {
 /** Ajustes siempre actualizados para usar dentro de las pantallas */
 export function useAjustes(): Ajustes {
   const fila = useLiveQuery(() => db.ajustes.get('general'), [])
-  return { ...AJUSTES_POR_DEFECTO, ...(fila?.valor ?? {}) }
+  return completar(fila?.valor)
 }

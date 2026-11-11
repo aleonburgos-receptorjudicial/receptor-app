@@ -44,5 +44,5 @@ export function EtiquetaEstado({ causa }: { causa: Causa }) {
 }
 
 export function MarcaUrgente() {
-  return <span className="rounded-md bg-rojo px-2 py-0.5 text-sm font-bold text-white">Urgente</span>
+  return <span className="rounded-md bg-rojo px-2 py-0.5 text-sm font-bold text-papel">Urgente</span>
 }

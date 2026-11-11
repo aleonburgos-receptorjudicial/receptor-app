@@ -7,7 +7,7 @@ type VarianteBoton = 'principal' | 'secundario' | 'peligro' | 'discreto'
 const estilosBoton: Record<VarianteBoton, string> = {
   principal: 'bg-petroleo text-sobre-petroleo hover:bg-petroleo-hover border-transparent',
   secundario: 'bg-superficie text-petroleo border-petroleo hover:bg-petroleo-suave',
-  peligro: 'bg-rojo text-white border-transparent hover:opacity-90',
+  peligro: 'bg-rojo text-papel border-transparent hover:opacity-90',
   discreto: 'bg-transparent text-petroleo border-transparent hover:bg-petroleo-suave',
 }
 

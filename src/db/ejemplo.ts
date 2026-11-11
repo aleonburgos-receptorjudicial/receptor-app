@@ -2,7 +2,7 @@
 // y se pueden borrar con un botón sin tocar los datos reales.
 import { ahoraISO, db } from './basedatos'
 import { TRIBUNAL_CURANILAHUE } from './ajustes'
-import type { Boleta, Causa, Cliente, Pago } from './tipos'
+import type { Boleta, Causa, Cliente, Pago, Retiro } from './tipos'
 import { calcularDv, formatearRut } from '../utilidades/rut'
 import { hoyISO, sumarDias } from '../utilidades/formato'
 
@@ -21,7 +21,7 @@ export async function cargarDatosEjemplo(): Promise<void> {
   const hoy = hoyISO()
   const base = { creado: ahora, actualizado: ahora, ejemplo: true }
 
-  await db.transaction('rw', [db.clientes, db.causas, db.boletas, db.pagos], async () => {
+  await db.transaction('rw', [db.clientes, db.causas, db.retiros, db.boletas, db.pagos], async () => {
     const clientes: Cliente[] = [
       { ...base, nombre: 'Estudio Jurídico Pérez y Asociados', rut: rutFicticio('76543210'), contacto: 'Carolina Pérez', correo: 'cperez@ejemplo.cl', telefono: '+56 9 1111 2222' },
       { ...base, nombre: 'Estudio Perez Ltda.', contacto: 'Secretaría', notas: 'Probablemente es el mismo estudio que «Pérez y Asociados». Sirve para probar «Fusionar clientes».' },
@@ -48,6 +48,20 @@ export async function cargarDatosEjemplo(): Promise<void> {
       causa({ rol: 'C-402-2026', clienteId: biobio, demandado: 'Carlos Muñoz Pino', domicilio: 'Los Copihues 55, Villa Los Ríos', sector: 'Villa Los Ríos', tipoDiligencia: 'Requerimiento de pago', fechaEncargo: sumarDias(hoy, -33), estado: 'Realizada', fechaDiligencia: sumarDias(hoy, -5), resultado: 'Negativa', detalleResultado: 'No se ubicó domicilio', estampadoPjud: false }),
       causa({ rol: 'E-77-2026', tipoCausa: 'Exhorto', clienteId: fuentes, demandado: 'Marta Sanhueza', domicilio: 'Pasaje Los Robles 9', tipoDiligencia: 'Notificación', fechaEncargo: sumarDias(hoy, -64), estado: 'Devuelta', observaciones: 'El cliente retiró el encargo.' }),
       causa({ rol: 'C-150-2026', clienteId: biobio, demandado: 'Ana Gutiérrez', domicilio: 'Sin domicilio conocido', tipoDiligencia: 'Búsqueda', fechaEncargo: sumarDias(hoy, -90), estado: 'Suspendida', observaciones: 'Suspendida a pedido del cliente.' }),
+    ])
+
+    const retiro = (r: Partial<Retiro> & Pick<Retiro, 'rol' | 'fechaEncargo' | 'fechaVencimiento'>): Retiro => ({
+      ...base,
+      tribunal: TRIBUNAL_CURANILAHUE,
+      estado: 'Pendiente',
+      ...r,
+    })
+    await db.retiros.bulkAdd([
+      retiro({ rol: 'C-610-2026', clienteId: fuentes, mandante: 'Automotora Ficticia S.A.', deudor: 'Jorge Lagos Pérez', rutDeudor: rutFicticio('15111222'), patente: 'BB·CD·12', marca: 'Chevrolet', modelo: 'Sail', anio: 2019, color: 'Gris', direccion: 'Los Aromos 210, Curanilahue', fechaEncargo: sumarDias(hoy, -40), fechaVencimiento: sumarDias(hoy, -2), estado: 'En búsqueda', fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -20) }),
+      retiro({ rol: 'C-622-2026', clienteId: perez, mandante: 'Banco Ficticio S.A.', deudor: 'Patricia Rivas', patente: 'KL·PR·45', marca: 'Toyota', modelo: 'Yaris', anio: 2021, color: 'Blanco', direccion: 'Pasaje 7 N° 14, Villa Los Ríos', fechaEncargo: sumarDias(hoy, -25), fechaVencimiento: sumarDias(hoy, 5), fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -10), fuerzaPublicaConcedida: true, fechaFuerzaConcedida: sumarDias(hoy, -3) }),
+      retiro({ rol: 'C-640-2026', clienteId: biobio, deudor: 'Hugo Tapia', patente: 'FX·12·34', marca: 'Nissan', modelo: 'V16', anio: 2010, color: 'Rojo', direccion: 'Camino a Plegarias km 4', fechaEncargo: sumarDias(hoy, -10), fechaVencimiento: sumarDias(hoy, 12) }),
+      retiro({ rol: 'C-655-2026', clienteId: fuentes, deudor: 'Andrea Molina', patente: 'GH·JK·78', marca: 'Hyundai', modelo: 'Accent', anio: 2018, color: 'Azul', fechaEncargo: sumarDias(hoy, -5), fechaVencimiento: sumarDias(hoy, 40) }),
+      retiro({ rol: 'C-590-2026', clienteId: perez, deudor: 'Rodrigo Saavedra', patente: 'DR·TS·90', marca: 'Kia', modelo: 'Rio', anio: 2017, color: 'Negro', fechaEncargo: sumarDias(hoy, -60), fechaVencimiento: sumarDias(hoy, -15), estado: 'Retirado', fechaRetiro: sumarDias(hoy, -20), horaRetiro: '10:30', custodio: 'Depósito Municipal de Curanilahue' }),
     ])
 
     const retencion = 15.25

@@ -62,7 +62,8 @@ export interface Causa extends RegistroBase {
   fechasAnteriores?: string[]
 }
 
-export type EstadoRetiro = 'Pendiente' | 'En búsqueda' | 'Retirado' | 'No encontrado' | 'Suspendido'
+export const ESTADOS_RETIRO = ['Pendiente', 'En búsqueda', 'Retirado', 'No encontrado', 'Suspendido'] as const
+export type EstadoRetiro = (typeof ESTADOS_RETIRO)[number]
 
 export interface Retiro extends RegistroBase {
   rol: string
@@ -133,6 +134,8 @@ export interface CampoRetiro {
   /** true si es un campo de fábrica (no se puede eliminar, solo ocultar o renombrar) */
   base: boolean
   obligatorio?: boolean
+  /** Campo de fábrica imprescindible: no se puede ocultar (ROL, fechas, estado) */
+  fijo?: boolean
 }
 
 export interface Ajustes {

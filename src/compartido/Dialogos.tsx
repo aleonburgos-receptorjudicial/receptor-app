@@ -40,7 +40,8 @@ export function ProveedorDialogos({ children }: { children: ReactNode }) {
 
   const avisar = useCallback((texto: string, tipo: TipoAviso = 'exito') => {
     const id = Date.now() + Math.random()
-    setAvisos((a) => [...a, { id, texto, tipo }])
+    // Se muestran como máximo 3 avisos a la vez
+    setAvisos((a) => [...a.slice(-2), { id, texto, tipo }])
     setTimeout(() => setAvisos((a) => a.filter((x) => x.id !== id)), 4000)
   }, [])
 

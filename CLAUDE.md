@@ -33,7 +33,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Navegación con HashRouter; la vista previa en claude.ai se compila con `VITE_ENRUTADOR=memoria` (MemoryRouter).
 - Código ordenado por módulos en `src/modulos/`; `src/sincronizacion/` queda reservado para Supabase/Drive (no implementar aún).
 - Comentarios del código en español.
-- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros, 4) Boletas, 5) Inicio, respaldos, PWA y pruebas finales.
+- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas, 5) Inicio, respaldos, PWA y pruebas finales.
 
 ## Datos
 - Guardar la información (causas, notificaciones, plazos, honorarios) **localmente en el navegador**.
@@ -57,3 +57,8 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Solo se guardan datos del tribunal de Curanilahue: sin ROL ni tribunal de origen. Al importar, se usa "ROL EXHORTO" si es de Curanilahue; las filas de otros tribunales se omiten.
 - Reencargo = mismo ROL y cliente con causa pendiente/suspendida y fecha más nueva: se actualiza la fecha y se guarda la anterior.
 - SheetJS se instala desde cdn.sheetjs.com (entorno "receptor-app") y se carga solo al importar/exportar.
+
+## Decisiones de la fase 3 (Retiros de vehículos)
+- Campos del formulario configurables en `ajustes.camposRetiro` (orden, nombre, visible). Los de fábrica no se eliminan; ROL, fechas y estado no se ocultan (`fijo`). Los propios guardan su valor en `retiro.extras[clave]`.
+- Solo los retiros "Pendiente" y "En búsqueda" tienen color y alertas. Colores: más de 15 días verde, 8 a 15 amarillo, 0 a 7 naranja, vencido rojo (configurable).
+- La patente se valida con los formatos chilenos (auto nuevo/antiguo, moto nueva/antigua) y se muestra como placa "BB·BB·12".

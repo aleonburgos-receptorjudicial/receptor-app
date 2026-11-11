@@ -8,6 +8,7 @@ import { PaginaCausas } from './modulos/causas/PaginaCausas'
 import { PaginaClientes } from './modulos/clientes/PaginaClientes'
 import { FichaCliente } from './modulos/clientes/FichaCliente'
 import { PaginaConfiguracion } from './modulos/configuracion/PaginaConfiguracion'
+import { PaginaRetiros } from './modulos/retiros/PaginaRetiros'
 
 // En la versión de vista previa (página de Claude) se navega sin cambiar la dirección web.
 const Enrutador = import.meta.env.VITE_ENRUTADOR === 'memoria' ? MemoryRouter : HashRouter
@@ -28,7 +29,7 @@ export default function App() {
           <Route element={<Estructura />}>
             <Route index element={<EnConstruccion titulo="Inicio" fase={5} />} />
             <Route path="causas" element={<PaginaCausas />} />
-            <Route path="retiros" element={<EnConstruccion titulo="Retiros de vehículos" fase={3} />} />
+            <Route path="retiros" element={<PaginaRetiros />} />
             <Route path="boletas" element={<EnConstruccion titulo="Boletas de honorarios" fase={4} />} />
             <Route path="clientes" element={<PaginaClientes />} />
             <Route path="clientes/:id" element={<FichaCliente />} />
