@@ -140,7 +140,13 @@ export interface InformeLeido {
   conNotas: boolean
 }
 
-export type EstadoBoleta = 'Pendiente' | 'Pagada' | 'Anulada'
+export const ESTADOS_BOLETA = ['Pendiente', 'Pagada', 'Anulada'] as const
+export type EstadoBoleta = (typeof ESTADOS_BOLETA)[number]
+/**
+ * Quién paga la retención de la boleta:
+ * - 'Cliente': el cliente retiene el impuesto (retención del receptor en el SII); se le cobra el líquido.
+ * - 'Receptor': la receptora judicial paga la retención (retención del emisor en el SII); se cobra el bruto.
+ */
 export type PagadorRetencion = 'Receptor' | 'Cliente'
 
 export interface Boleta extends RegistroBase {
@@ -157,8 +163,12 @@ export interface Boleta extends RegistroBase {
   pagaRetencion: PagadorRetencion
   montoCobrar: number
   estado: EstadoBoleta
+  /** Fecha en que se anuló en el SII */
+  fechaAnulacion?: string
   nota?: string
   causaIds?: number[]
+  /** De dónde salió: a mano, PDF del SII o informe mensual del SII */
+  origen?: 'manual' | 'pdf' | 'informe'
 }
 
 export interface Pago extends RegistroBase {

@@ -59,6 +59,19 @@ export function PaginaConfiguracion() {
     avisar('Plazos de los retiros guardados')
   }
 
+  // Plazos de alerta de boletas impagas (días desde la emisión)
+  const [umbBol, setUmbBol] = useState(ajustes.umbralesBoletas)
+  const [errorBol, setErrorBol] = useState('')
+  useEffect(() => setUmbBol(ajustes.umbralesBoletas), [ajustes.umbralesBoletas])
+  const guardarUmbBol = async () => {
+    const { primera, segunda, tercera } = umbBol
+    if (![primera, segunda, tercera].every((n) => Number.isInteger(n) && n > 0)) return setErrorBol('Escriba números enteros mayores que cero.')
+    if (!(primera < segunda && segunda < tercera)) return setErrorBol('Cada alerta debe ser mayor que la anterior (amarillo < naranja < rojo).')
+    setErrorBol('')
+    await guardarAjustes({ umbralesBoletas: umbBol })
+    avisar('Plazos de las boletas guardados')
+  }
+
   const cargar = async () => {
     await cargarDatosEjemplo()
     avisar('Datos de ejemplo cargados. Revise el módulo Clientes.')
@@ -217,6 +230,60 @@ export function PaginaConfiguracion() {
         <EditorCamposRetiro campos={ajustes.camposRetiro} />
       </Seccion>
 
+      <Seccion titulo="Boletas de honorarios">
+        <p className="mb-4 max-w-[65ch] text-tenue">Las boletas impagas se marcan en amarillo, naranja y rojo según los días desde la emisión.</p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Campo etiqueta="Primera alerta (amarillo)" type="number" min={1} inputMode="numeric" value={umbBol.primera} onChange={(e) => setUmbBol((u) => ({ ...u, primera: Number(e.target.value) }))} ayuda="días" />
+          <Campo etiqueta="Segunda alerta (naranja)" type="number" min={1} inputMode="numeric" value={umbBol.segunda} onChange={(e) => setUmbBol((u) => ({ ...u, segunda: Number(e.target.value) }))} ayuda="días" />
+          <Campo etiqueta="Tercera alerta (rojo)" type="number" min={1} inputMode="numeric" value={umbBol.tercera} onChange={(e) => setUmbBol((u) => ({ ...u, tercera: Number(e.target.value) }))} ayuda="días" />
+        </div>
+        {errorBol && <p className="mt-2 font-bold text-rojo" role="alert">{errorBol}</p>}
+        <Boton className="mt-4" onClick={guardarUmbBol}>
+          Guardar plazos de boletas
+        </Boton>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <Campo
+              etiqueta="% de retención por defecto"
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              key={`ret${ajustes.porcentajeRetencion}`}
+              defaultValue={ajustes.porcentajeRetencion}
+              ayuda="Vigente en 2026: 15,25 %. Se propone en cada boleta nueva y se puede cambiar."
+              onBlur={(e) => {
+                const n = Number(e.target.value)
+                if (!Number.isFinite(n) || n < 0 || n > 50) return setErrorBol('El % de retención debe estar entre 0 y 50.')
+                if (n !== ajustes.porcentajeRetencion) {
+                  guardarAjustes({ porcentajeRetencion: n })
+                  avisar(`Retención por defecto: ${n.toLocaleString('es-CL')} %`)
+                }
+              }}
+            />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="firma-cobro" className="font-bold">
+                Firma de los recordatorios de cobro
+              </label>
+              <textarea
+                id="firma-cobro"
+                rows={2}
+                className="w-full rounded-lg border-2 border-borde bg-superficie px-3 py-2 focus:border-petroleo focus:outline-none"
+                key={ajustes.firmaCobro}
+                defaultValue={ajustes.firmaCobro}
+                onBlur={(e) => {
+                  const v = e.target.value.trim()
+                  if (v !== ajustes.firmaCobro) {
+                    guardarAjustes({ firmaCobro: v })
+                    avisar('Firma guardada')
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <EditorLista titulo="Medios de pago" valores={ajustes.mediosPago} alGuardar={(v) => guardarAjustes({ mediosPago: v })} />
+        </div>
+      </Seccion>
+
       <Seccion titulo="Datos de ejemplo">
         <p className="max-w-[65ch] text-tenue">
           Cargue clientes, causas, retiros y boletas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
@@ -234,7 +301,7 @@ export function PaginaConfiguracion() {
 
       <Seccion titulo="Próximamente">
         <p className="text-tenue">
-          En las próximas fases se agregan aquí: los plazos de las boletas, los medios de pago y el respaldo completo de sus datos.
+          En la próxima fase se agrega aquí el respaldo completo de sus datos (exportar e importar).
         </p>
       </Seccion>
     </div>

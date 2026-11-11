@@ -35,7 +35,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Navegación con HashRouter; la vista previa en claude.ai se compila con `VITE_ENRUTADOR=memoria` (MemoryRouter).
 - Código ordenado por módulos en `src/modulos/`; `src/sincronizacion/` queda reservado para Supabase/Drive (no implementar aún).
 - Comentarios del código en español.
-- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas, 5) Inicio, respaldos, PWA y pruebas finales.
+- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas ✅, 5) Inicio, respaldos, PWA y pruebas finales.
 
 ## Datos
 - Guardar la información (causas, notificaciones, plazos, honorarios) **localmente en el navegador**.
@@ -69,3 +69,11 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Informes PDF de los dealers: se adjuntan al retiro (tabla `archivos` de Dexie, versión 2) y se abren desde la lista o la tarjeta.
 - "Leer informe" (formato DealerNET, `src/modulos/retiros/informe/`): pdf.js lee textos y dibuja la página para medir el color de cada estrella (llena/media/vacía). Ordena domicilios por contactabilidad + calidad (marca los de 6/10 o más), saca relacionados y avisa si el RUT no coincide. Lo elegido se agrega al formulario (domicilios probables primero, `retiro.familiares`) y el resumen se guarda en el archivo. Pruebas solo con un informe ficticio generado con reportlab.
 - Mandantes: lista editable en Clientes → pestaña Mandantes (`ajustes.mandantes`). Renombrar corrige causas y retiros; renombrar a uno existente los une. Se recuerdan solos al escribirlos.
+
+## Decisiones de la fase 4 (Boletas de honorarios)
+- Montos: retención = bruto × % (redondeo como el SII, la mitad sube, con enteros). Si retiene el cliente se cobra el líquido; si paga la retención la receptora («Receptor»), se cobra el bruto.
+- Anuladas: se guardan pero no entran en totales, gráficos, alertas ni barras; pestaña aparte «Anuladas». Filtro general «Todas vigentes».
+- Pagos parciales permitidos; la boleta pasa sola a «Pagada» cuando los pagos cubren el monto a cobrar. Tiempo de pago = emisión → último pago.
+- Importación del SII (`src/modulos/boletas/importar/`): PDF de boleta (pdf.js; glosa y ROL para asociar causas) e informe mensual (.xls que es HTML Latin-1 con tildes como entidades; se decodifican antes de leer con SheetJS). Se unen por N°; si ya existe, se actualiza (no se duplica). Aviso si tiene más de un año.
+- Gráfico mensual con Recharts (carga diferida). Colores validados con dataviz: cobrado `--serie-pagado` (#00879c / oscuro #00a3bb) y por cobrar `--serie-cobrar` (#6250d6 / oscuro #9085e9), con leyenda, separación y vista de tabla.
+- Pruebas con boleta e informe ficticios generados con reportlab.

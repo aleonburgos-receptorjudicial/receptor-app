@@ -27,6 +27,9 @@
   --naranja-suave: #fde7d6;
   --rojo: #b42318;
   --rojo-suave: #fbe4e2;
+  /* Series de gráficos (validadas para daltonismo): lo cobrado y lo que falta por cobrar */
+  --serie-pagado: #00879c;
+  --serie-cobrar: #6250d6;
   color-scheme: light;
 }
 
@@ -48,6 +51,8 @@
   --naranja-suave: #3a2213;
   --rojo: #f08378;
   --rojo-suave: #3d1916;
+  --serie-pagado: #00a3bb;
+  --serie-cobrar: #9085e9;
   color-scheme: dark;
 }
 
@@ -71,6 +76,8 @@
   --color-naranja-suave: var(--naranja-suave);
   --color-rojo: var(--rojo);
   --color-rojo-suave: var(--rojo-suave);
+  --color-serie-pagado: var(--serie-pagado);
+  --color-serie-cobrar: var(--serie-cobrar);
 }
 
 /* Letra base grande para facilitar la lectura */

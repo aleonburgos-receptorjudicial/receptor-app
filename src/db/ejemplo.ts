@@ -5,6 +5,7 @@ import { TRIBUNAL_CURANILAHUE } from './ajustes'
 import type { Boleta, Causa, Cliente, Pago, Retiro } from './tipos'
 import { calcularDv, formatearRut } from '../utilidades/rut'
 import { hoyISO, sumarDias } from '../utilidades/formato'
+import { calcularMontos } from '../modulos/boletas/calculos'
 
 const rutFicticio = (cuerpo: string) => formatearRut(cuerpo + calcularDv(cuerpo))
 
@@ -66,38 +67,59 @@ export async function cargarDatosEjemplo(): Promise<void> {
     ])
 
     const retencion = 15.25
-    const boleta = (numero: number, clienteId: number, nombreCliente: string, bruto: number, dias: number, estado: Boleta['estado']): Boleta => {
-      const montoRetencion = Math.round((bruto * retencion) / 100)
+    const boleta = (
+      numero: number,
+      clienteId: number,
+      cliente: Cliente,
+      bruto: number,
+      dias: number,
+      estado: Boleta['estado'],
+      glosa: string,
+      pagaRetencion: Boleta['pagaRetencion'] = 'Cliente',
+    ): Boleta => {
+      const montoRetencion = calcularMontos(bruto, retencion, pagaRetencion).retencion
       return {
         ...base,
         numero,
         fechaEmision: sumarDias(hoy, -dias),
         clienteId,
-        nombreCliente,
-        glosa: 'Diligencias de notificación',
+        nombreCliente: cliente.nombre,
+        rutCliente: cliente.rut,
+        glosa,
         bruto,
         porcentajeRetencion: retencion,
         retencion: montoRetencion,
         liquido: bruto - montoRetencion,
-        pagaRetencion: 'Cliente',
-        montoCobrar: bruto - montoRetencion,
+        pagaRetencion,
+        montoCobrar: pagaRetencion === 'Cliente' ? bruto - montoRetencion : bruto,
         estado,
+        fechaAnulacion: estado === 'Anulada' ? sumarDias(hoy, -dias + 1) : undefined,
+        origen: 'manual',
       }
     }
-    const [b1, , b3] = (await db.boletas.bulkAdd(
+    const [b1, , b3, , , b6] = (await db.boletas.bulkAdd(
       [
-        boleta(9001, perez, clientes[0].nombre, 85000, 45, 'Pagada'),
-        boleta(9002, perez, clientes[0].nombre, 60000, 20, 'Pendiente'),
-        boleta(9003, fuentes, clientes[2].nombre, 120000, 70, 'Pagada'),
-        boleta(9004, fuentes, clientes[2].nombre, 45000, 95, 'Pendiente'),
-        boleta(9005, biobio, clientes[3].nombre, 30000, 10, 'Anulada'),
+        boleta(9001, perez, clientes[0], 85000, 45, 'Pagada', 'Notificación personal C-512-2026'),
+        boleta(9002, perez, clientes[0], 60000, 20, 'Pendiente', 'Requerimiento de pago C-498-2026'),
+        boleta(9003, fuentes, clientes[2], 120000, 70, 'Pagada', 'Notificación personal E-45-2026'),
+        boleta(9004, fuentes, clientes[2], 45000, 95, 'Pendiente', 'Búsqueda negativa C-280-2026'),
+        boleta(9005, biobio, clientes[3], 30000, 10, 'Anulada', 'Boleta emitida por error'),
+        boleta(9006, biobio, clientes[3], 150000, 50, 'Pendiente', '2 notificaciones art. 44', 'Receptor'),
       ],
       { allKeys: true },
     )) as number[]
 
+    // La causa E-45-2026 queda asociada a la boleta 9003
+    const e45 = await db.causas.where('rol').equals('E-45-2026').first()
+    if (e45?.id) {
+      await db.causas.update(e45.id, { boletaId: b3 })
+      await db.boletas.update(b3, { causaIds: [e45.id] })
+    }
+
     const pagos: Pago[] = [
       { ...base, boletaId: b1, fecha: sumarDias(hoy, -25), monto: 72038, medio: 'Transferencia' },
       { ...base, boletaId: b3, fecha: sumarDias(hoy, -30), monto: 101700, medio: 'Transferencia' },
+      { ...base, boletaId: b6, fecha: sumarDias(hoy, -10), monto: 50000, medio: 'Depósito', nota: 'Abono parcial' },
     ]
     await db.pagos.bulkAdd(pagos)
   })

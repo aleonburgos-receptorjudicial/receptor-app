@@ -8,12 +8,11 @@
 //   - relacionados (RUT, nombre y parentesco)
 //
 // Las estrellas son imágenes: se dibuja la página y se mide cuánto color tiene cada estrella.
-import { getDocument, GlobalWorkerOptions, OPS, type PDFPageProxy } from 'pdfjs-dist'
-import urlTrabajador from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { OPS, type PDFPageProxy } from 'pdfjs-dist'
+import { abrirPdf } from '../../../compartido/pdf'
 import type { DomicilioInforme, InformeLeido, SeccionDomicilio } from '../../../db/tipos'
 import { normalizar } from '../../../utilidades/texto'
 
-GlobalWorkerOptions.workerSrc = urlTrabajador
 
 export type { DomicilioInforme, InformeLeido, SeccionDomicilio }
 
@@ -160,8 +159,7 @@ const esPieOCabecera = (t: string, titular?: string, rut?: string) => {
 }
 
 export async function leerInforme(archivo: Blob): Promise<InformeLeido> {
-  const tarea = getDocument({ data: new Uint8Array(await archivo.arrayBuffer()) })
-  const pdf = await tarea.promise
+  const { pdf, cerrar } = await abrirPdf(archivo)
   const informe: InformeLeido = { domicilios: [], relacionados: [], conNotas: false }
   let seccion: ReturnType<typeof seccionDe> = null
   let columnas: { rut: number; nombre: number; relacion: number } | null = null
@@ -247,7 +245,7 @@ export async function leerInforme(archivo: Blob): Promise<InformeLeido> {
       }
     }
   } finally {
-    await tarea.destroy()
+    await cerrar()
   }
 
   for (const d of informe.domicilios) d.puntaje = (d.contactabilidad ?? 0) + (d.calidad ?? 0)
