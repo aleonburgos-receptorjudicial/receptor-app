@@ -5,6 +5,7 @@ import { hoyISO } from '../../utilidades/formato'
 import { revisarPatente } from '../../utilidades/patente'
 import { revisarRut } from '../../utilidades/rut'
 import { normalizarRol } from '../causas/servicioCausas'
+import { recordarMandantes } from '../clientes/servicioMandantes'
 
 export type DatosRetiro = Omit<Retiro, 'id' | 'creado' | 'actualizado' | 'ejemplo'>
 export type ValorExtra = string | number | boolean | null
@@ -89,6 +90,7 @@ export function validarRetiro(datos: DatosRetiro, campos: CampoRetiro[]): { erro
 
 export async function guardarRetiro(datos: DatosRetiro, id?: number): Promise<number> {
   const ahora = ahoraISO()
+  await recordarMandantes([datos.mandante])
   if (id) {
     // "put" reemplaza el registro completo, así los campos borrados quedan realmente vacíos
     const anterior = await db.retiros.get(id)
@@ -98,8 +100,12 @@ export async function guardarRetiro(datos: DatosRetiro, id?: number): Promise<nu
   return (await db.retiros.add({ ...datos, creado: ahora, actualizado: ahora })) as number
 }
 
+/** Elimina el retiro junto con sus informes PDF adjuntos */
 export async function eliminarRetiro(id: number): Promise<void> {
-  await db.retiros.delete(id)
+  await db.transaction('rw', db.retiros, db.archivos, async () => {
+    await db.archivos.where('retiroId').equals(id).delete()
+    await db.retiros.delete(id)
+  })
 }
 
 /** Registra que el vehículo fue retirado: día, hora, lugar y depósito en un solo paso */

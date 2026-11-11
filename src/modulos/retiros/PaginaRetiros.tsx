@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
-import { ESTADOS_RETIRO, type Retiro } from '../../db/tipos'
+import { ESTADOS_RETIRO, type Archivo, type Retiro } from '../../db/tipos'
 import { Boton, EncabezadoPagina, SinDatos } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoBasura, IconoBuscar, IconoEditar, IconoMas, IconoTelefono } from '../../compartido/Iconos'
@@ -15,6 +15,7 @@ import { contiene } from '../../utilidades/texto'
 import { FormularioRetiro } from './FormularioRetiro'
 import { BORDE_NIVEL, EstadoRetiro, EtiquetaVencimiento, NOMBRE_NIVEL, Placa } from './Piezas'
 import { RegistrarRetiro } from './RegistrarRetiro'
+import { abrirArchivo } from './servicioArchivos'
 import { eliminarRetiro, valorCampo } from './servicioRetiros'
 import { diasRestantes, nivelVencimiento, retiroActivo, textoVencimiento, type NivelVencimiento } from './vencimiento'
 
@@ -34,8 +35,11 @@ export function PaginaRetiros() {
   const [exportando, setExportando] = useState(false)
 
   const datos = useLiveQuery(async () => {
-    const [retiros, clientes] = await Promise.all([db.retiros.toArray(), db.clientes.orderBy('nombre').toArray()])
-    return { retiros, clientes }
+    const [retiros, clientes, archivos] = await Promise.all([db.retiros.toArray(), db.clientes.orderBy('nombre').toArray(), db.archivos.toArray()])
+    // Informes PDF agrupados por retiro
+    const adjuntos = new Map<number, Archivo[]>()
+    for (const a of archivos) adjuntos.set(a.retiroId, [...(adjuntos.get(a.retiroId) ?? []), a])
+    return { retiros, clientes, adjuntos }
   }, [])
   const hoy = hoyISO()
   const nombreCliente = useMemo(() => new Map((datos?.clientes ?? []).map((c) => [c.id, c.nombre])), [datos])
@@ -109,6 +113,7 @@ export function PaginaRetiros() {
             ¿Seguro que desea eliminar el retiro del ROL <strong>{r.rol}</strong>
             {r.patente ? `, patente ${r.patente}` : ''}?
           </p>
+          {(datos.adjuntos.get(r.id!)?.length ?? 0) > 0 && <p className="mt-2">También se eliminarán sus informes PDF adjuntos.</p>}
           <p className="mt-2 text-tenue">Esta acción no se puede deshacer.</p>
         </>
       ),
@@ -149,6 +154,21 @@ export function PaginaRetiros() {
       </Boton>
     </div>
   )
+
+  // Botón para abrir el informe PDF (si hay varios, se abre el formulario con la lista)
+  const BotonInforme = ({ r, grande = false }: { r: Retiro; grande?: boolean }) => {
+    const pdfs = datos.adjuntos.get(r.id!) ?? []
+    if (!pdfs.length) return null
+    return (
+      <Boton
+        variante="secundario"
+        className={grande ? '' : 'mt-2 min-h-10 px-3 py-1 text-sm'}
+        onClick={() => (pdfs.length === 1 ? abrirArchivo(pdfs[0]) : abrirEdicion(r))}
+      >
+        {pdfs.length === 1 ? 'Ver informe PDF' : `Ver informes PDF (${pdfs.length})`}
+      </Boton>
+    )
+  }
 
   const vehiculo = (r: Retiro) => [r.marca, r.modelo, r.anio, r.color].filter(Boolean).join(' ')
   // Fechas con guion que no se corta al final de la línea
@@ -328,6 +348,7 @@ export function PaginaRetiros() {
                               <Placa patente={r.patente} />
                             </button>
                             <span className="mt-1 block text-sm text-tenue">{vehiculo(r) || 'Sin datos del vehículo'}</span>
+                            <BotonInforme r={r} />
                           </td>
                           <td className="px-3 py-3">
                             <span className="whitespace-nowrap font-serif text-lg font-bold cifra">{r.rol}</span>
@@ -434,6 +455,11 @@ export function PaginaRetiros() {
                             })}
                           </dl>
                         </details>
+                      )}
+                      {(datos.adjuntos.get(r.id!)?.length ?? 0) > 0 && (
+                        <div className="mt-3 flex">
+                          <BotonInforme r={r} grande />
+                        </div>
                       )}
                       <div className="mt-3">
                         <Acciones r={r} grande />

@@ -5,6 +5,7 @@ import type { Ajustes, Causa, ResultadoDiligencia } from '../../db/tipos'
 import { fechaCL, hoyISO } from '../../utilidades/formato'
 import { revisarRut } from '../../utilidades/rut'
 import { normalizar } from '../../utilidades/texto'
+import { recordarMandantes } from '../clientes/servicioMandantes'
 
 export type DatosCausa = Omit<Causa, 'id' | 'creado' | 'actualizado' | 'ejemplo'>
 
@@ -88,6 +89,7 @@ async function recordarValoresNuevos(datos: Partial<Causa>[]): Promise<void> {
   if (tip) cambios.tiposCausa = tip
   if (det) cambios.detallesResultado = det
   if (Object.keys(cambios).length) await guardarAjustes(cambios)
+  await recordarMandantes(datos.map((d) => d.mandante))
 }
 
 export async function guardarCausa(datos: DatosCausa, id?: number): Promise<number> {

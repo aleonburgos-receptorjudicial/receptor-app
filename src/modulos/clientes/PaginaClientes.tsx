@@ -1,13 +1,14 @@
 // Pantalla principal de Clientes / estudios jurídicos: lista con buscador.
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
 import { Boton, EncabezadoPagina, SinDatos } from '../../compartido/Controles'
 import { IconoBuscar, IconoMas, IconoUnir } from '../../compartido/Iconos'
 import { plural, pesos } from '../../utilidades/formato'
 import { contiene } from '../../utilidades/texto'
+import { EditorMandantes } from './EditorMandantes'
 import { FormularioCliente } from './FormularioCliente'
 import { FusionarClientes } from './FusionarClientes'
 import { resumirCliente } from './servicioClientes'
@@ -18,6 +19,9 @@ export function PaginaClientes() {
   const [busqueda, setBusqueda] = useState('')
   const [formAbierto, setFormAbierto] = useState(false)
   const [fusionAbierta, setFusionAbierta] = useState(false)
+  // Pestañas: estudios jurídicos (clientes) o mandantes
+  const [parametros, setParametros] = useSearchParams()
+  const vista = parametros.get('vista') === 'mandantes' ? 'mandantes' : 'estudios'
 
   const datos = useLiveQuery(async () => {
     const [clientes, causas, retiros, boletas, pagos] = await Promise.all([
@@ -45,8 +49,9 @@ export function PaginaClientes() {
     <div>
       <EncabezadoPagina
         titulo="Clientes"
-        descripcion="Estudios jurídicos y particulares que le encargan diligencias."
+        descripcion={vista === 'estudios' ? 'Estudios jurídicos y particulares que le encargan diligencias.' : 'Bancos, financieras y cooperativas por cuenta de quienes se hacen los encargos.'}
         acciones={
+          vista === 'estudios' && (
           <>
             {total > 1 && (
               <Boton variante="secundario" icono={<IconoUnir />} onClick={() => setFusionAbierta(true)}>
@@ -57,10 +62,33 @@ export function PaginaClientes() {
               Nuevo cliente
             </Boton>
           </>
+          )
         }
       />
 
-      {total === 0 ? (
+      <div className="mb-6 flex gap-2 border-b-2 border-borde" role="tablist" aria-label="Tipo de cliente">
+        {(
+          [
+            ['estudios', 'Estudios jurídicos'],
+            ['mandantes', 'Mandantes'],
+          ] as const
+        ).map(([v, t]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={vista === v}
+            onClick={() => setParametros(v === 'mandantes' ? { vista: 'mandantes' } : {})}
+            className={`-mb-0.5 min-h-12 border-b-4 px-4 text-lg font-bold ${vista === v ? 'border-petroleo text-petroleo' : 'border-transparent text-tenue hover:text-tinta'}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {vista === 'mandantes' && <EditorMandantes />}
+
+      {vista === 'estudios' && (total === 0 ? (
         <SinDatos
           titulo="Aún no hay clientes"
           texto="Agregue el primer estudio jurídico, o cargue datos de ejemplo desde Configuración para ver cómo funciona."
@@ -165,7 +193,7 @@ export function PaginaClientes() {
             </>
           )}
         </>
-      )}
+      ))}
 
       <FormularioCliente abierta={formAbierto} alCerrar={() => setFormAbierto(false)} alGuardar={(id) => navegar(`/clientes/${id}`)} />
       <FusionarClientes abierta={fusionAbierta} clientes={datos.clientes} alCerrar={() => setFusionAbierta(false)} />

@@ -11,7 +11,9 @@ import { Ventana } from '../../compartido/Ventana'
 import { diasEntre, fechaCL, hoyISO, plural, sumarDias } from '../../utilidades/formato'
 import { formatearPatente, patenteValida } from '../../utilidades/patente'
 import { FormularioCliente } from '../clientes/FormularioCliente'
+import { AdjuntosRetiro } from './AdjuntosRetiro'
 import { Placa } from './Piezas'
+import { agregarArchivos } from './servicioArchivos'
 import { buscarRetiroDuplicado, guardarRetiro, validarRetiro, valorCampo, type DatosRetiro, type ErroresRetiro, type ValorExtra } from './servicioRetiros'
 
 // Los retiros suelen venir de otros tribunales: el tribunal parte vacío (con sugerencias)
@@ -33,15 +35,16 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
   const [errores, setErrores] = useState<ErroresRetiro>({})
   const [duplicado, setDuplicado] = useState<Retiro | null>(null)
   const [nuevoCliente, setNuevoCliente] = useState(false)
+  const [pdfsPendientes, setPdfsPendientes] = useState<File[]>([])
   const clientes = useLiveQuery(() => db.clientes.orderBy('nombre').toArray(), []) ?? []
   // Tribunales y mandantes ya usados, para sugerirlos
   const usados = useLiveQuery(async () => {
     const [retiros, causas] = await Promise.all([db.retiros.toArray(), db.causas.toArray()])
     return {
       tribunales: sugerencias([...retiros.map((r) => r.tribunal), ajustes.tribunalPorDefecto]),
-      mandantes: sugerencias([...retiros.map((r) => r.mandante), ...causas.map((c) => c.mandante)]),
+      mandantes: sugerencias([...ajustes.mandantes, ...retiros.map((r) => r.mandante), ...causas.map((c) => c.mandante)]),
     }
-  }, [ajustes.tribunalPorDefecto]) ?? { tribunales: [], mandantes: [] }
+  }, [ajustes.tribunalPorDefecto, ajustes.mandantes]) ?? { tribunales: [], mandantes: [] }
 
   useEffect(() => {
     if (!abierta) return
@@ -51,6 +54,7 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
     } else setD(retiroVacio())
     setErrores({})
     setDuplicado(null)
+    setPdfsPendientes([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierta, retiro])
 
@@ -83,7 +87,8 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
         return
       }
     }
-    await guardarRetiro(datos, retiro?.id)
+    const id = await guardarRetiro(datos, retiro?.id)
+    if (pdfsPendientes.length) await agregarArchivos(id, pdfsPendientes)
     avisar(retiro ? 'Retiro actualizado' : 'Retiro guardado')
     alCerrar()
   }
@@ -236,6 +241,9 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
           ))}
           <button type="submit" hidden />
         </form>
+        <div className="mt-6">
+          <AdjuntosRetiro retiroId={retiro?.id} pendientes={pdfsPendientes} alCambiarPendientes={setPdfsPendientes} />
+        </div>
         <p className="mt-4 text-sm text-tenue">Puede agregar, renombrar, ordenar u ocultar campos de este formulario en Configuración.</p>
 
         {duplicado && (

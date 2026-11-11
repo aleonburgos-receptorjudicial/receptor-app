@@ -1,7 +1,7 @@
 // Base de datos local del navegador (IndexedDB), manejada con Dexie.
 // Todos los datos quedan guardados en el propio equipo: no se envían a ningún servidor.
 import Dexie, { type EntityTable } from 'dexie'
-import type { Boleta, Causa, Cliente, FilaAjustes, Pago, Retiro } from './tipos'
+import type { Archivo, Boleta, Causa, Cliente, FilaAjustes, Pago, Retiro } from './tipos'
 
 export class BaseReceptora extends Dexie {
   clientes!: EntityTable<Cliente, 'id'>
@@ -10,6 +10,7 @@ export class BaseReceptora extends Dexie {
   boletas!: EntityTable<Boleta, 'id'>
   pagos!: EntityTable<Pago, 'id'>
   ajustes!: EntityTable<FilaAjustes, 'clave'>
+  archivos!: EntityTable<Archivo, 'id'>
 
   constructor() {
     super('receptora-curanilahue')
@@ -21,6 +22,10 @@ export class BaseReceptora extends Dexie {
       boletas: '++id, &numero, clienteId, estado, fechaEmision, ejemplo',
       pagos: '++id, boletaId, fecha, ejemplo',
       ajustes: 'clave',
+    })
+    // Versión 2: archivos adjuntos (informes PDF de los retiros)
+    this.version(2).stores({
+      archivos: '++id, retiroId, ejemplo',
     })
   }
 }

@@ -64,3 +64,5 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Campos del formulario configurables en `ajustes.camposRetiro` (orden, nombre, visible). Los de fábrica no se eliminan; ROL, fechas y estado no se ocultan (`fijo`). Los propios guardan su valor en `retiro.extras[clave]`.
 - Solo los retiros "Pendiente" y "En búsqueda" tienen color y alertas. Colores: más de 15 días verde, 8 a 15 amarillo, 0 a 7 naranja, vencido rojo (configurable).
 - La patente se valida con los formatos chilenos (auto nuevo/antiguo, moto nueva/antigua) y se muestra como placa "BB·BB·12".
+- Informes PDF de los dealers: se adjuntan al retiro (tabla `archivos` de Dexie, versión 2) y se abren desde la lista o la tarjeta. Pendiente: leer el PDF y resumir los domicilios con mejor calificación (calidad y contactabilidad) y los familiares, cuando Mercedes envíe un ejemplo.
+- Mandantes: lista editable en Clientes → pestaña Mandantes (`ajustes.mandantes`). Renombrar corrige causas y retiros; renombrar a uno existente los une. Se recuerdan solos al escribirlos.

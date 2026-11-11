@@ -105,7 +105,7 @@ export async function cargarDatosEjemplo(): Promise<void> {
 
 /** Borra solo los registros marcados como ejemplo */
 export async function borrarDatosEjemplo(): Promise<void> {
-  await db.transaction('rw', [db.clientes, db.causas, db.retiros, db.boletas, db.pagos], async () => {
+  await db.transaction('rw', [db.clientes, db.causas, db.retiros, db.boletas, db.pagos, db.archivos], async () => {
     // Si un dato real quedó vinculado a un cliente de ejemplo, se desvincula
     const idsEjemplo = (await db.clientes.filter((c) => c.ejemplo === true).primaryKeys()) as number[]
     if (idsEjemplo.length) {
@@ -113,6 +113,8 @@ export async function borrarDatosEjemplo(): Promise<void> {
       await db.retiros.where('clienteId').anyOf(idsEjemplo).and((r) => !r.ejemplo).modify({ clienteId: undefined })
       await db.boletas.where('clienteId').anyOf(idsEjemplo).and((b) => !b.ejemplo).modify({ clienteId: undefined })
     }
+    const retirosEjemplo = (await db.retiros.filter((r) => r.ejemplo === true).primaryKeys()) as number[]
+    if (retirosEjemplo.length) await db.archivos.where('retiroId').anyOf(retirosEjemplo).delete()
     for (const t of [db.clientes, db.causas, db.retiros, db.boletas, db.pagos] as const) {
       await t.filter((r) => r.ejemplo === true).delete()
     }

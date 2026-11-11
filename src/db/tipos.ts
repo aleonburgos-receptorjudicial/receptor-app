@@ -152,6 +152,19 @@ export interface CampoRetiro {
   fijo?: boolean
 }
 
+/** Archivo adjunto (por ahora, informes PDF de los retiros), guardado dentro del equipo */
+export interface Archivo {
+  id?: number
+  retiroId: number
+  nombre: string
+  tipo: string
+  tamano: number
+  /** Fecha y hora en que se agregó (ISO) */
+  agregado: string
+  datos: Blob
+  ejemplo?: boolean
+}
+
 export interface Ajustes {
   tribunalPorDefecto: string
   /** Límites en días para causas: hasta "reciente" es verde, hasta "media" amarillo, hasta "alta" naranja, sobre eso rojo */
@@ -164,6 +177,8 @@ export interface Ajustes {
   umbralesBoletas: { primera: number; segunda: number; tercera: number }
   porcentajeRetencion: number
   tiposCausa: string[]
+  /** Mandantes (bancos, financieras…) para sugerir en causas y retiros */
+  mandantes: string[]
   tiposDiligencia: string[]
   detallesResultado: string[]
   sectores: string[]

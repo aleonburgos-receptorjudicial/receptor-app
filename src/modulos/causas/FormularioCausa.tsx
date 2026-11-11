@@ -136,7 +136,14 @@ export function FormularioCausa({ abierta, causa, alCerrar }: { abierta: boolean
                 + Crear cliente nuevo
               </Boton>
             </div>
-            <Campo etiqueta="Mandante" value={d.mandante ?? ''} onChange={texto('mandante')} placeholder="Banco, cooperativa…" />
+            <CampoConLista
+              etiqueta="Mandante"
+              opciones={ajustes.mandantes}
+              value={d.mandante ?? ''}
+              onChange={texto('mandante')}
+              placeholder="Banco, cooperativa…"
+              ayuda="Elija de la lista o escriba uno nuevo. La lista se edita en Clientes → Mandantes."
+            />
           </Grupo>
 
           <Grupo titulo="Diligencia">
