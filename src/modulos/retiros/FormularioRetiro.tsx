@@ -202,8 +202,6 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
   const DATOS_DEL_RETIRO = new Set(['fechaRetiro', 'horaRetiro', 'lugarRetiro', 'custodio'])
   const corresponde = (c: CampoRetiro) => {
     if (DATOS_DEL_RETIRO.has(c.clave)) return d.estado === 'Retirado' || !!valorCampo(d, c)
-    if (c.clave === 'fechaFuerzaSolicitada') return !!d.fuerzaPublicaSolicitada || !!d.fechaFuerzaSolicitada
-    if (c.clave === 'fechaFuerzaConcedida') return !!d.fuerzaPublicaConcedida || !!d.fechaFuerzaConcedida
     return true
   }
   const visibles = ajustes.camposRetiro.filter((c) => c.visible && corresponde(c))

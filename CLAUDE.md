@@ -59,7 +59,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - SheetJS se instala desde cdn.sheetjs.com (entorno "receptor-app") y se carga solo al importar/exportar.
 
 ## Decisiones de la fase 3 (Retiros de vehículos)
-- Campos pedidos por Mercedes: ROL, tribunal (sin valor por defecto), fecha de emisión y vencimiento del oficio, vehículo, demandado y RUT, mandante, estudio, martillero (nombre, teléfono, dirección), revisión técnica, permiso de circulación, domicilios probables, observaciones. Al retirar: día, hora, lugar y depósito.
+- Campos pedidos por Mercedes: ROL, tribunal (sin valor por defecto), fecha del encargo (con días transcurridos), fecha de emisión y vencimiento del oficio (sin fechas de fuerza pública), vehículo, demandado y RUT, mandante, estudio, martillero (nombre, teléfono, dirección), revisión técnica, permiso de circulación, domicilios probables, observaciones. Al retirar: día, hora, lugar y depósito.
 - Vigencia habitual del oficio (opcional, en Configuración) propone el vencimiento desde la emisión. Recuadro rojo de oficios vencidos o por vencer (7 días) arriba de la lista.
 - Campos del formulario configurables en `ajustes.camposRetiro` (orden, nombre, visible). Los de fábrica no se eliminan; ROL, fechas y estado no se ocultan (`fijo`). Los propios guardan su valor en `retiro.extras[clave]`.
 - Solo los retiros "Pendiente" y "En búsqueda" tienen color y alertas. Colores: más de 15 días verde, 8 a 15 amarillo, 0 a 7 naranja, vencido rojo (configurable).

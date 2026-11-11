@@ -8,7 +8,7 @@ import { Boton, EncabezadoPagina, SinDatos } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoBasura, IconoBuscar, IconoEditar, IconoMas, IconoTelefono } from '../../compartido/Iconos'
 import { Ventana } from '../../compartido/Ventana'
-import { fechaCL, hoyISO, plural } from '../../utilidades/formato'
+import { diasEntre, fechaCL, hoyISO, plural } from '../../utilidades/formato'
 import { limpiarPatente } from '../../utilidades/patente'
 import { limpiarRut } from '../../utilidades/rut'
 import { contiene } from '../../utilidades/texto'
@@ -153,8 +153,8 @@ export function PaginaRetiros() {
   const vehiculo = (r: Retiro) => [r.marca, r.modelo, r.anio, r.color].filter(Boolean).join(' ')
   // Fechas con guion que no se corta al final de la línea
   const fechaFija = (iso?: string) => (iso ? ` ${fechaCL(iso).replace(/-/g, '\u2011')}` : '')
-  const fuerzaPublica = (r: Retiro) =>
-    r.fuerzaPublicaConcedida ? `Fuerza pública concedida${fechaFija(r.fechaFuerzaConcedida)}` : r.fuerzaPublicaSolicitada ? `Fuerza pública solicitada${fechaFija(r.fechaFuerzaSolicitada)}` : null
+  const fuerzaPublica = (r: Retiro) => (r.fuerzaPublicaConcedida ? 'Fuerza pública concedida' : r.fuerzaPublicaSolicitada ? 'Fuerza pública solicitada' : null)
+  const diasEncargo = (r: Retiro) => Math.max(0, diasEntre(r.fechaEncargo, hoy))
 
   return (
     <div>
@@ -350,6 +350,9 @@ export function PaginaRetiros() {
                               <EtiquetaVencimiento nivel={nivel} dias={diasRestantes(r, hoy)} />
                             </span>
                             {r.fechaEmision && <span className="block text-sm text-tenue cifra">Emitido {fechaCL(r.fechaEmision)}</span>}
+                            <span className="block text-sm text-tenue cifra">
+                              Encargo {fechaCL(r.fechaEncargo)}, hace {plural(diasEncargo(r), 'día', 'días')}
+                            </span>
                             <span className="block max-w-48 whitespace-normal text-sm text-tenue">{r.tribunal}</span>
                           </td>
                           <td className="px-3 py-3">
@@ -398,7 +401,9 @@ export function PaginaRetiros() {
                       <p className="text-tenue">
                         {[r.clienteId ? nombreCliente.get(r.clienteId) : 'Sin cliente', r.mandante].filter(Boolean).join(', ')}
                       </p>
-                      {r.fechaEmision && <p className="text-sm text-tenue cifra">Oficio emitido {fechaCL(r.fechaEmision)}</p>}
+                      <p className="text-sm text-tenue cifra">
+                        {r.fechaEmision ? `Oficio emitido ${fechaCL(r.fechaEmision)}. ` : ''}Encargo hace {plural(diasEncargo(r), 'día', 'días')} ({fechaCL(r.fechaEncargo)})
+                      </p>
                       {r.martilleroNombre && (
                         <div className="mt-2 rounded-lg bg-papel p-2">
                           <p>Martillero: {r.martilleroNombre}</p>
