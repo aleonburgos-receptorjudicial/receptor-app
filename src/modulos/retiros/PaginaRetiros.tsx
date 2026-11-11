@@ -61,6 +61,7 @@ export function PaginaRetiros() {
             contiene(r.mandante, q) ||
             contiene(r.tribunal, q) ||
             contiene(r.martilleroNombre, q) ||
+            (r.familiares ?? []).some((f) => contiene(f.nombre, q)) ||
             (qPat.length >= 3 && !!r.patente && limpiarPatente(r.patente).includes(qPat)) ||
             (qRut.length >= 4 && !!r.rutDeudor && limpiarRut(r.rutDeudor).includes(qRut))
           if (!coincide) return false
@@ -440,9 +441,9 @@ export function PaginaRetiros() {
                         <EstadoRetiro estado={r.estado} />
                         {fuerzaPublica(r) && <span className="text-sm text-tenue">{fuerzaPublica(r)}</span>}
                       </div>
-                      {conExtras.length > 0 && (
+                      {(conExtras.length > 0 || (r.familiares?.length ?? 0) > 0) && (
                         <details className="mt-3">
-                          <summary className="min-h-10 cursor-pointer py-2 font-bold text-petroleo">Más datos ({conExtras.length})</summary>
+                          <summary className="min-h-10 cursor-pointer py-2 font-bold text-petroleo">Más datos ({conExtras.length + (r.familiares?.length ? 1 : 0)})</summary>
                           <dl className="grid grid-cols-1 gap-1">
                             {conExtras.map((c) => {
                               const v = valorCampo(r, c)
@@ -453,6 +454,18 @@ export function PaginaRetiros() {
                                 </div>
                               )
                             })}
+                            {(r.familiares?.length ?? 0) > 0 && (
+                              <div className="mt-1">
+                                <dt className="text-tenue">Familiares:</dt>
+                                {r.familiares!.map((f, i) => (
+                                  <dd key={i} className="ml-3">
+                                    {f.nombre}
+                                    {f.relacion ? ` (${f.relacion})` : ''}
+                                    {f.rut ? `, ${f.rut}` : ''}
+                                  </dd>
+                                ))}
+                              </div>
+                            )}
                           </dl>
                         </details>
                       )}

@@ -4,14 +4,18 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
-import { ESTADOS_RETIRO, type CampoRetiro, type Retiro } from '../../db/tipos'
+import { ESTADOS_RETIRO, type CampoRetiro, type Familiar, type Retiro } from '../../db/tipos'
 import { AreaTexto, Boton, Campo, CampoConLista, Casilla, Selector } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { diasEntre, fechaCL, hoyISO, plural, sumarDias } from '../../utilidades/formato'
+import { limpiarRut } from '../../utilidades/rut'
+import { normalizar } from '../../utilidades/texto'
 import { formatearPatente, patenteValida } from '../../utilidades/patente'
 import { FormularioCliente } from '../clientes/FormularioCliente'
-import { AdjuntosRetiro } from './AdjuntosRetiro'
+import { AdjuntosRetiro, type PdfParaLeer } from './AdjuntosRetiro'
+import { lineaDomicilio, ResumenInforme, type SeleccionInforme } from './informe/ResumenInforme'
+import { Familiares } from './Familiares'
 import { Placa } from './Piezas'
 import { agregarArchivos } from './servicioArchivos'
 import { buscarRetiroDuplicado, guardarRetiro, validarRetiro, valorCampo, type DatosRetiro, type ErroresRetiro, type ValorExtra } from './servicioRetiros'
@@ -36,6 +40,7 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
   const [duplicado, setDuplicado] = useState<Retiro | null>(null)
   const [nuevoCliente, setNuevoCliente] = useState(false)
   const [pdfsPendientes, setPdfsPendientes] = useState<File[]>([])
+  const [leyendo, setLeyendo] = useState<PdfParaLeer | null>(null)
   const clientes = useLiveQuery(() => db.clientes.orderBy('nombre').toArray(), []) ?? []
   // Tribunales y mandantes ya usados, para sugerirlos
   const usados = useLiveQuery(async () => {
@@ -91,6 +96,34 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
     if (pdfsPendientes.length) await agregarArchivos(id, pdfsPendientes)
     avisar(retiro ? 'Retiro actualizado' : 'Retiro guardado')
     alCerrar()
+  }
+
+  /** Agrega al formulario lo elegido en el resumen del informe (la usuaria luego guarda el retiro) */
+  const aplicarInforme = async (sel: SeleccionInforme) => {
+    const existentes = (d.direccion ?? '').split('\n').map((l) => l.trim()).filter(Boolean)
+    const yaEsta = (l: string) => existentes.some((e) => normalizar(e.split('(')[0]).startsWith(normalizar(l.split('(')[0])))
+    const nuevas = sel.domicilios.map(lineaDomicilio).filter((l) => !yaEsta(l))
+    const familiares: Familiar[] = [...(d.familiares ?? [])]
+    let famNuevos = 0
+    for (const f of sel.familiares) {
+      const repetido = familiares.some((x) => (f.rut && x.rut && limpiarRut(x.rut) === limpiarRut(f.rut)) || normalizar(x.nombre) === normalizar(f.nombre))
+      if (!repetido) {
+        familiares.push(f)
+        famNuevos++
+      }
+    }
+    setD((x) => ({
+      ...x,
+      // Los domicilios del informe van primero (del más probable al menos probable)
+      direccion: [...nuevas, ...existentes].join('\n') || undefined,
+      familiares: familiares.length ? familiares : undefined,
+      deudor: x.deudor || sel.completarDemandado?.nombre || x.deudor,
+      rutDeudor: x.rutDeudor || sel.completarDemandado?.rut || x.rutDeudor,
+    }))
+    // Se guarda lo leído junto al PDF para no tener que leerlo de nuevo
+    if (leyendo?.archivoId) await db.archivos.update(leyendo.archivoId, { resumen: sel.informe })
+    setLeyendo(null)
+    avisar(`Se agregaron ${plural(nuevas.length, 'domicilio', 'domicilios')} y ${plural(famNuevos, 'familiar', 'familiares')}. Recuerde guardar el retiro.`)
   }
 
   const control = (c: CampoRetiro) => {
@@ -241,8 +274,9 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
           ))}
           <button type="submit" hidden />
         </form>
-        <div className="mt-6">
-          <AdjuntosRetiro retiroId={retiro?.id} pendientes={pdfsPendientes} alCambiarPendientes={setPdfsPendientes} />
+        <div className="mt-6 flex flex-col gap-6">
+          <Familiares lista={d.familiares ?? []} alCambiar={(familiares) => setD((x) => ({ ...x, familiares: familiares.length ? familiares : undefined }))} />
+          <AdjuntosRetiro retiroId={retiro?.id} pendientes={pdfsPendientes} alCambiarPendientes={setPdfsPendientes} alLeer={setLeyendo} />
         </div>
         <p className="mt-4 text-sm text-tenue">Puede agregar, renombrar, ordenar u ocultar campos de este formulario en Configuración.</p>
 
@@ -258,6 +292,14 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
           </div>
         )}
       </Ventana>
+      <ResumenInforme
+        archivo={leyendo?.datos ?? null}
+        nombreArchivo={leyendo?.nombre ?? ''}
+        resumenGuardado={leyendo?.resumen}
+        demandado={{ nombre: d.deudor, rut: d.rutDeudor }}
+        alCerrar={() => setLeyendo(null)}
+        alAplicar={aplicarInforme}
+      />
       <FormularioCliente
         abierta={nuevoCliente}
         alCerrar={() => setNuevoCliente(false)}

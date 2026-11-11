@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
+import type { Archivo } from '../../db/tipos'
 import { Boton } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { fechaCL } from '../../utilidades/formato'
@@ -11,14 +12,24 @@ import { abrirArchivo, agregarArchivos, eliminarArchivo, revisarArchivos, tamano
  * Si el retiro ya existe (retiroId), los archivos se guardan al tiro.
  * Si es un retiro nuevo, quedan "pendientes" y se guardan junto con el retiro.
  */
+export interface PdfParaLeer {
+  datos: Blob
+  nombre: string
+  archivoId?: number
+  resumen?: Archivo['resumen']
+}
+
 export function AdjuntosRetiro({
   retiroId,
   pendientes,
   alCambiarPendientes,
+  alLeer,
 }: {
   retiroId?: number
   pendientes: File[]
   alCambiarPendientes: (f: File[]) => void
+  /** Abre el resumen del informe (domicilios y familiares) */
+  alLeer: (pdf: PdfParaLeer) => void
 }) {
   const avisar = useAviso()
   const confirmar = useConfirmar()
@@ -52,7 +63,7 @@ export function AdjuntosRetiro({
       <h3 id="titulo-adjuntos" className="font-serif text-lg font-bold">
         Informes PDF del dealer
       </h3>
-      <p className="text-sm text-tenue">Quedan guardados en este equipo, junto al retiro. Puede abrirlos cuando quiera, también sin internet.</p>
+      <p className="text-sm text-tenue">Quedan guardados en este equipo, junto al retiro, y se abren también sin internet. «Leer informe» ordena los domicilios por contactabilidad y calidad, y saca los familiares.</p>
       {hay && (
         <ul className="flex flex-col gap-2">
           {guardados.map((a) => (
@@ -63,8 +74,11 @@ export function AdjuntosRetiro({
                   {tamanoLegible(a.tamano)}, agregado el {fechaCL(a.agregado)}
                 </span>
               </span>
+              <Boton className="min-h-10 py-1" onClick={() => alLeer({ datos: a.datos, nombre: a.nombre, archivoId: a.id, resumen: a.resumen })}>
+                {a.resumen ? 'Ver resumen' : 'Leer informe'}
+              </Boton>
               <Boton variante="secundario" className="min-h-10 py-1" onClick={() => abrirArchivo(a)}>
-                Abrir
+                Abrir PDF
               </Boton>
               <Boton variante="discreto" className="min-h-10 py-1 text-rojo" aria-label={`Quitar ${a.nombre}`} onClick={() => quitarGuardado(a.id!, a.nombre)}>
                 Quitar
@@ -77,6 +91,9 @@ export function AdjuntosRetiro({
                 <span className="font-bold">{f.name}</span>
                 <span className="block text-sm text-tenue">{tamanoLegible(f.size)}, se guardará junto con el retiro</span>
               </span>
+              <Boton className="min-h-10 py-1" onClick={() => alLeer({ datos: f, nombre: f.name })}>
+                Leer informe
+              </Boton>
               <Boton variante="discreto" className="min-h-10 py-1 text-rojo" aria-label={`Quitar ${f.name}`} onClick={() => alCambiarPendientes(pendientes.filter((_, j) => j !== i))}>
                 Quitar
               </Boton>

@@ -73,6 +73,12 @@ export function validarRetiro(datos: DatosRetiro, campos: CampoRetiro[]): { erro
   }
   if (limpio.horaRetiro && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(limpio.horaRetiro)) errores.horaRetiro = 'Escriba la hora como 14:30.'
 
+  // Familiares: sin filas vacías y RUT con formato
+  const familiares = (datos.familiares ?? [])
+    .filter((f) => f.nombre?.trim())
+    .map((f) => ({ nombre: f.nombre.trim(), relacion: f.relacion?.trim() || undefined, rut: revisarRut(f.rut).valor ?? (f.rut?.trim() || undefined) }))
+  limpio.familiares = familiares.length ? familiares : undefined
+
   // Campos personalizados: limpiar textos y revisar los obligatorios
   const extras: Record<string, ValorExtra> = {}
   for (const [k, v] of Object.entries(datos.extras ?? {})) {

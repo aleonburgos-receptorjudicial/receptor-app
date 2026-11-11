@@ -14,7 +14,7 @@ export function exportarRetiros(retiros: Retiro[], clientes: Cliente[], campos: 
   const hoy = hoyISO()
   const nombreCliente = new Map(clientes.map((c) => [c.id, c.nombre]))
   const visibles = campos.filter((c) => c.visible)
-  const encabezados = [...visibles.map((c) => c.etiqueta), 'Días restantes']
+  const encabezados = [...visibles.map((c) => c.etiqueta), 'Familiares del demandado', 'Días restantes']
 
   const filas = retiros.map((r) => [
     ...visibles.map((c) => {
@@ -25,6 +25,7 @@ export function exportarRetiros(retiros: Retiro[], clientes: Cliente[], campos: 
       if (c.tipo === 'fecha' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return fechaExcel(v)
       return v
     }),
+    (r.familiares ?? []).map((f) => `${f.nombre}${f.relacion ? ` (${f.relacion})` : ''}${f.rut ? `, ${f.rut}` : ''}`).join('; ') || null,
     retiroActivo(r) ? diasRestantes(r, hoy) : null,
   ])
 

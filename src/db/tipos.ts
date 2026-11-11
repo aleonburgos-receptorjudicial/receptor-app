@@ -103,8 +103,41 @@ export interface Retiro extends RegistroBase {
   /** Lugar donde se retiró el vehículo */
   lugarRetiro?: string
   observaciones?: string
+  /** Familiares o relacionados del demandado (desde los informes de los dealers o a mano) */
+  familiares?: Familiar[]
   /** Valores de los campos personalizados (clave del campo → valor) */
   extras?: Record<string, string | number | boolean | null>
+}
+
+export interface Familiar {
+  nombre: string
+  rut?: string
+  relacion?: string
+}
+
+export type SeccionDomicilio = 'Más probable' | 'Alternativo' | 'Laboral'
+
+/** Domicilio leído de un informe de dealer, con sus notas (0 a 5) */
+export interface DomicilioInforme {
+  direccion: string
+  comuna?: string
+  relacion?: string
+  seccion: SeccionDomicilio
+  contactabilidad?: number
+  calidad?: number
+  /** Suma de contactabilidad y calidad (0 a 10) */
+  puntaje: number
+}
+
+export interface InformeLeido {
+  titular?: string
+  rutTitular?: string
+  fechaConsulta?: string
+  fuente?: string
+  domicilios: DomicilioInforme[]
+  relacionados: { rut?: string; nombre: string; relacion: string }[]
+  /** true si se pudieron leer las estrellas de calificación */
+  conNotas: boolean
 }
 
 export type EstadoBoleta = 'Pendiente' | 'Pagada' | 'Anulada'
@@ -162,6 +195,8 @@ export interface Archivo {
   /** Fecha y hora en que se agregó (ISO) */
   agregado: string
   datos: Blob
+  /** Lo que se leyó del informe (se guarda para no volver a leerlo) */
+  resumen?: InformeLeido
   ejemplo?: boolean
 }
 
