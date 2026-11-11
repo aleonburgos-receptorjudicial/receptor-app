@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@import "@fontsource/atkinson-hyperlegible/latin-400.css";
+@import "@fontsource/atkinson-hyperlegible/latin-700.css";
+@import "@fontsource/source-serif-4/latin-600.css";
+@import "@fontsource/source-serif-4/latin-700.css";
+
+/* Modo oscuro: se activa con la clase "oscuro" en <html> */
+@custom-variant dark (&:where(.oscuro, .oscuro *));
+
+/* Colores de la app. Se definen como variables para cambiar fácilmente entre modo claro y oscuro. */
+:root {
+  --papel: #f4f6f5;
+  --superficie: #ffffff;
+  --tinta: #1b2a2f;
+  --tenue: #56676b;
+  --borde: #d3dcdb;
+  --petroleo: #0e4d57;
+  --petroleo-hover: #0a3a42;
+  --petroleo-suave: #e2eeee;
+  --sobre-petroleo: #ffffff;
+  /* Colores reservados para prioridades y alertas */
+  --verde: #2e7d4f;
+  --verde-suave: #e3f2e8;
+  --amarillo: #8a6a00;
+  --amarillo-suave: #fbf1cc;
+  --naranja: #b4530f;
+  --naranja-suave: #fde7d6;
+  --rojo: #b42318;
+  --rojo-suave: #fbe4e2;
+  color-scheme: light;
+}
+
+.oscuro {
+  --papel: #121c1f;
+  --superficie: #1a2629;
+  --tinta: #e6edec;
+  --tenue: #9fb0b2;
+  --borde: #2f4246;
+  --petroleo: #5fb0ba;
+  --petroleo-hover: #7cc2ca;
+  --petroleo-suave: #1d373b;
+  --sobre-petroleo: #0b1f22;
+  --verde: #6cc48f;
+  --verde-suave: #183126;
+  --amarillo: #e6c34d;
+  --amarillo-suave: #33290c;
+  --naranja: #f0965a;
+  --naranja-suave: #3a2213;
+  --rojo: #f08378;
+  --rojo-suave: #3d1916;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --color-papel: var(--papel);
+  --color-superficie: var(--superficie);
+  --color-tinta: var(--tinta);
+  --color-tenue: var(--tenue);
+  --color-borde: var(--borde);
+  --color-petroleo: var(--petroleo);
+  --color-petroleo-hover: var(--petroleo-hover);
+  --color-petroleo-suave: var(--petroleo-suave);
+  --color-sobre-petroleo: var(--sobre-petroleo);
+  --color-verde: var(--verde);
+  --color-verde-suave: var(--verde-suave);
+  --color-amarillo: var(--amarillo);
+  --color-amarillo-suave: var(--amarillo-suave);
+  --color-naranja: var(--naranja);
+  --color-naranja-suave: var(--naranja-suave);
+  --color-rojo: var(--rojo);
+  --color-rojo-suave: var(--rojo-suave);
+}
+
+/* Letra base grande para facilitar la lectura */
+html {
+  font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+/* Foco visible al usar el teclado */
+:focus-visible {
+  outline: 3px solid var(--petroleo);
+  outline-offset: 2px;
+}
+
+/* Números alineados en tablas y montos */
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
