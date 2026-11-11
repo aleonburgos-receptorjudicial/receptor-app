@@ -33,7 +33,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Navegación con HashRouter; la vista previa en claude.ai se compila con `VITE_ENRUTADOR=memoria` (MemoryRouter).
 - Código ordenado por módulos en `src/modulos/`; `src/sincronizacion/` queda reservado para Supabase/Drive (no implementar aún).
 - Comentarios del código en español.
-- Fases: 1) base y Clientes ✅, 2) Causas, 3) Retiros, 4) Boletas, 5) Inicio, respaldos, PWA y pruebas finales.
+- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros, 4) Boletas, 5) Inicio, respaldos, PWA y pruebas finales.
 
 ## Datos
 - Guardar la información (causas, notificaciones, plazos, honorarios) **localmente en el navegador**.
@@ -51,3 +51,9 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Los datos de causas y personas son **confidenciales**.
 - No enviarlos a ningún servicio externo (sin analítica, sin servidores, sin APIs externas con datos de causas).
 - Para pruebas, usar solo datos ficticios.
+
+## Decisiones de la fase 2 (Causas)
+- Estados: Pendiente / Realizada / Suspendida / Devuelta. La etapa (falta estampar, sin boleta, boleta emitida) se calcula.
+- Solo se guardan datos del tribunal de Curanilahue: sin ROL ni tribunal de origen. Al importar, se usa "ROL EXHORTO" si es de Curanilahue; las filas de otros tribunales se omiten.
+- Reencargo = mismo ROL y cliente con causa pendiente/suspendida y fecha más nueva: se actualiza la fecha y se guarda la anterior.
+- SheetJS se instala desde cdn.sheetjs.com (entorno "receptor-app") y se carga solo al importar/exportar.

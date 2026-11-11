@@ -97,12 +97,12 @@ export function Selector({
 /** Título de cada pantalla, con espacio para botones a la derecha */
 export function EncabezadoPagina({ titulo, descripcion, acciones }: { titulo: string; descripcion?: string; acciones?: ReactNode }) {
   return (
-    <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div>
         <h1 className="font-serif text-3xl font-bold text-tinta md:text-4xl">{titulo}</h1>
         {descripcion && <p className="mt-1 max-w-[65ch] text-tenue">{descripcion}</p>}
       </div>
-      {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
+      {acciones && <div className="flex min-w-0 flex-wrap gap-2 md:justify-end">{acciones}</div>}
     </header>
   )
 }
@@ -128,5 +128,80 @@ export function Seccion({ titulo, children, acciones }: { titulo: string; childr
       </div>
       {children}
     </section>
+  )
+}
+
+/** Campo de texto con sugerencias de una lista; se puede escribir un valor nuevo */
+export function CampoConLista({
+  etiqueta,
+  opciones,
+  error,
+  ayuda,
+  obligatorio,
+  ...props
+}: EnvolturaCampo & InputHTMLAttributes<HTMLInputElement> & { opciones: string[] }) {
+  const id = useId()
+  const idLista = `${id}-lista`
+  return (
+    <Envoltura id={id} etiqueta={etiqueta} error={error} ayuda={ayuda} obligatorio={obligatorio}>
+      <input id={id} list={idLista} autoComplete="off" className={`${estiloEntrada} ${error ? 'border-rojo' : ''}`} aria-invalid={!!error} {...props} />
+      <datalist id={idLista}>
+        {opciones.map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
+    </Envoltura>
+  )
+}
+
+/** Casilla de verificación grande, fácil de tocar */
+export function Casilla({ etiqueta, ayuda, ...props }: { etiqueta: string; ayuda?: string } & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="flex min-h-12 cursor-pointer items-center gap-3">
+      <input type="checkbox" className="h-6 w-6 shrink-0 accent-[var(--petroleo)]" {...props} />
+      <span>
+        <span className="font-bold">{etiqueta}</span>
+        {ayuda && <span className="block text-sm text-tenue">{ayuda}</span>}
+      </span>
+    </label>
+  )
+}
+
+/** Grupo de botones para elegir una opción (ej. Positiva / Negativa) */
+export function Opciones<T extends string>({
+  etiqueta,
+  opciones,
+  valor,
+  alCambiar,
+  error,
+}: {
+  etiqueta: string
+  opciones: readonly T[]
+  valor: T | undefined
+  alCambiar: (v: T) => void
+  error?: string
+}) {
+  return (
+    <fieldset className="flex flex-col gap-1">
+      <legend className="mb-1 font-bold">{etiqueta}</legend>
+      <div className="flex flex-wrap gap-2">
+        {opciones.map((o) => (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={valor === o}
+            onClick={() => alCambiar(o)}
+            className={`min-h-12 rounded-lg border-2 px-4 font-bold ${valor === o ? 'border-petroleo bg-petroleo text-sobre-petroleo' : 'border-borde bg-superficie text-tinta hover:border-petroleo'}`}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <p className="text-sm font-bold text-rojo" role="alert">
+          {error}
+        </p>
+      )}
+    </fieldset>
   )
 }

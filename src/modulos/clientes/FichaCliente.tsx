@@ -137,7 +137,16 @@ export function FichaCliente() {
         ))}
       </dl>
 
-      <Seccion titulo={`Causas (${datos.causas.length})`}>
+      <Seccion
+        titulo={`Causas (${datos.causas.length})`}
+        acciones={
+          datos.causas.length > 0 && (
+            <Link to={`/causas?cliente=${clienteId}`} className="inline-flex min-h-12 items-center font-bold text-petroleo underline-offset-4 hover:underline">
+              Ver en Causas
+            </Link>
+          )
+        }
+      >
         {datos.causas.length === 0 ? (
           <p className="text-tenue">Este cliente aún no tiene causas registradas.</p>
         ) : (

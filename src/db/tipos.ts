@@ -22,9 +22,13 @@ export interface Cliente extends RegistroBase {
   notas?: string
 }
 
-export type TipoCausa = 'Civil' | 'Exhorto'
-export type OrigenEncargo = 'Tribunal' | 'Particular' | 'Corte Suprema'
-export type EstadoCausa = 'Pendiente' | 'Realizada' | 'Suspendida'
+/** Tipo de causa: lista editable en Configuración (Civil, Exhorto, Protección, Laboral…) */
+export type TipoCausa = string
+export const ORIGENES = ['Tribunal', 'Particular', 'Corte de Apelaciones', 'Corte Suprema'] as const
+export type OrigenEncargo = (typeof ORIGENES)[number]
+export const ESTADOS_CAUSA = ['Pendiente', 'Realizada', 'Suspendida', 'Devuelta'] as const
+/** Devuelta = el cliente retiró o cerró el encargo */
+export type EstadoCausa = (typeof ESTADOS_CAUSA)[number]
 export type ResultadoDiligencia = 'Positiva' | 'Negativa'
 
 export interface Causa extends RegistroBase {
@@ -43,9 +47,19 @@ export interface Causa extends RegistroBase {
   fechaDiligencia?: string
   estado: EstadoCausa
   resultado?: ResultadoDiligencia
+  /** Detalle del resultado (Notificado personalmente, art. 44, No se ubicó domicilio…) */
+  detalleResultado?: string
   observaciones?: string
   estampadoPjud: boolean
   boletaId?: number
+  /** N° de boleta escrito en el Excel importado (para enlazarla en el módulo Boletas) */
+  boletaNumero?: number
+  /** Encargo marcado como urgente por el cliente */
+  urgente?: boolean
+  /** El cliente volvió a encargar la misma causa */
+  reencargo?: boolean
+  /** Fechas de encargo anteriores (reencargos) */
+  fechasAnteriores?: string[]
 }
 
 export type EstadoRetiro = 'Pendiente' | 'En búsqueda' | 'Retirado' | 'No encontrado' | 'Suspendido'
@@ -130,7 +144,10 @@ export interface Ajustes {
   /** Alertas de boletas impagas en días desde la emisión */
   umbralesBoletas: { primera: number; segunda: number; tercera: number }
   porcentajeRetencion: number
+  tiposCausa: string[]
   tiposDiligencia: string[]
+  detallesResultado: string[]
+  sectores: string[]
   mediosPago: string[]
   camposRetiro: CampoRetiro[]
   ultimoRespaldo?: string

@@ -45,14 +45,14 @@ export function Ventana({
             <button
               type="button"
               onClick={alCerrar}
-              className="flex h-12 w-12 items-center justify-center rounded-lg text-tenue hover:bg-petroleo-suave"
+              className="no-imprimir flex h-12 w-12 items-center justify-center rounded-lg text-tenue hover:bg-petroleo-suave"
               aria-label="Cerrar ventana"
             >
               <IconoCerrar />
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
-          {pie && <div className="flex flex-wrap justify-end gap-2 border-t border-borde px-5 py-3">{pie}</div>}
+          {pie && <div className="no-imprimir flex flex-wrap justify-end gap-2 border-t border-borde px-5 py-3">{pie}</div>}
         </div>
       )}
     </dialog>

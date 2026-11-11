@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { guardarAjustes, useAjustes } from '../../db/ajustes'
 import { borrarDatosEjemplo, cargarDatosEjemplo, hayDatosEjemplo } from '../../db/ejemplo'
-import { Boton, EncabezadoPagina, Seccion } from '../../compartido/Controles'
+import { Boton, Campo, EncabezadoPagina, Seccion } from '../../compartido/Controles'
+import { EditorLista } from './EditorLista'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoLuna } from '../../compartido/Iconos'
 
@@ -22,6 +23,27 @@ export function PaginaConfiguracion() {
     document.documentElement.classList.toggle('oscuro', valor)
     guardarAjustes({ modoOscuro: valor })
   }
+
+  // Plazos (días) para los colores de prioridad de las causas
+  const [umbrales, setUmbrales] = useState(ajustes.umbralesCausas)
+  const [errorUmbrales, setErrorUmbrales] = useState('')
+  useEffect(() => setUmbrales(ajustes.umbralesCausas), [ajustes.umbralesCausas])
+  const guardarUmbrales = async () => {
+    const { reciente, media, alta } = umbrales
+    if (![reciente, media, alta].every((n) => Number.isInteger(n) && n > 0)) {
+      setErrorUmbrales('Escriba números enteros mayores que cero.')
+      return
+    }
+    if (!(reciente < media && media < alta)) {
+      setErrorUmbrales('Cada plazo debe ser mayor que el anterior (verde < amarillo < naranja).')
+      return
+    }
+    setErrorUmbrales('')
+    await guardarAjustes({ umbralesCausas: umbrales })
+    avisar('Plazos de las causas guardados')
+  }
+  const numero = (campo: keyof typeof umbrales) => (e: { target: { value: string } }) =>
+    setUmbrales((u) => ({ ...u, [campo]: Number(e.target.value) }))
 
   const cargar = async () => {
     await cargarDatosEjemplo()
@@ -63,6 +85,50 @@ export function PaginaConfiguracion() {
         </label>
       </Seccion>
 
+      <Seccion titulo="Causas: colores según los días desde el encargo">
+        <p className="mb-4 max-w-[65ch] text-tenue">
+          Las causas no tienen vencimiento; el color avisa cuánto tiempo llevan pendientes. Las suspendidas y devueltas no cuentan.
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Campo etiqueta="Verde (reciente) hasta" type="number" min={1} inputMode="numeric" value={umbrales.reciente} onChange={numero('reciente')} ayuda="días" />
+          <Campo etiqueta="Amarillo (media) hasta" type="number" min={1} inputMode="numeric" value={umbrales.media} onChange={numero('media')} ayuda="días" />
+          <Campo etiqueta="Naranja (alta) hasta" type="number" min={1} inputMode="numeric" value={umbrales.alta} onChange={numero('alta')} ayuda={`días; sobre ${umbrales.alta || '…'} días es rojo y aparece como atrasada`} />
+        </div>
+        {errorUmbrales && <p className="mt-2 font-bold text-rojo" role="alert">{errorUmbrales}</p>}
+        <Boton className="mt-4" onClick={guardarUmbrales}>
+          Guardar plazos
+        </Boton>
+      </Seccion>
+
+      <Seccion titulo="Listas de las causas">
+        <div className="grid gap-8 lg:grid-cols-2">
+          <EditorLista
+            titulo="Tipos de diligencia"
+            ayuda="También se agregan solos cuando escribe uno nuevo en una causa o importa un Excel."
+            valores={ajustes.tiposDiligencia}
+            alGuardar={(v) => guardarAjustes({ tiposDiligencia: v })}
+          />
+          <EditorLista titulo="Detalles del resultado" valores={ajustes.detallesResultado} alGuardar={(v) => guardarAjustes({ detallesResultado: v })} />
+          <EditorLista titulo="Sectores" ayuda="Se usan para agrupar la hoja de ruta del día." valores={ajustes.sectores} alGuardar={(v) => guardarAjustes({ sectores: v })} />
+          <EditorLista titulo="Tipos de causa" valores={ajustes.tiposCausa} alGuardar={(v) => guardarAjustes({ tiposCausa: v })} />
+        </div>
+        <div className="mt-6 max-w-xl">
+          <Campo
+            etiqueta="Tribunal por defecto"
+            key={ajustes.tribunalPorDefecto}
+            defaultValue={ajustes.tribunalPorDefecto}
+            onBlur={(e) => {
+              const v = e.target.value.trim()
+              if (v && v !== ajustes.tribunalPorDefecto) {
+                guardarAjustes({ tribunalPorDefecto: v })
+                avisar('Tribunal por defecto guardado')
+              }
+            }}
+            ayuda="Se pone solo en cada causa nueva y en las importaciones."
+          />
+        </div>
+      </Seccion>
+
       <Seccion titulo="Datos de ejemplo">
         <p className="max-w-[65ch] text-tenue">
           Cargue clientes, causas y boletas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
@@ -80,8 +146,8 @@ export function PaginaConfiguracion() {
 
       <Seccion titulo="Próximamente">
         <p className="text-tenue">
-          En las próximas fases se agregan aquí: los plazos y colores de alerta, las listas de tipos de diligencia y medios de pago, los campos del
-          formulario de retiros, y el respaldo completo de sus datos.
+          En las próximas fases se agregan aquí: los plazos de retiros y boletas, los medios de pago, los campos del formulario de retiros y el respaldo
+          completo de sus datos.
         </p>
       </Seccion>
     </div>

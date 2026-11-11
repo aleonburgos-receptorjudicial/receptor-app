@@ -103,3 +103,14 @@ body {
     transition: none !important;
   }
 }
+
+/* Impresión: solo se imprime la ventana abierta (ej. hoja de ruta), sin menú ni botones */
+@media print {
+  html { font-size: 12pt; }
+  body * { visibility: hidden; }
+  dialog[open], dialog[open] * { visibility: visible; }
+  dialog[open] { position: absolute; inset: 0; height: auto; max-height: none; border: none; overflow: visible; }
+  dialog[open] * { overflow: visible !important; max-height: none !important; }
+  dialog::backdrop { display: none; }
+  .no-imprimir, .no-imprimir * { display: none !important; }
+}

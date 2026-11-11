@@ -4,6 +4,7 @@ import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { useAjustes } from './db/ajustes'
 import { ProveedorDialogos } from './compartido/Dialogos'
 import { EnConstruccion, Estructura } from './compartido/Estructura'
+import { PaginaCausas } from './modulos/causas/PaginaCausas'
 import { PaginaClientes } from './modulos/clientes/PaginaClientes'
 import { FichaCliente } from './modulos/clientes/FichaCliente'
 import { PaginaConfiguracion } from './modulos/configuracion/PaginaConfiguracion'
@@ -26,7 +27,7 @@ export default function App() {
         <Routes>
           <Route element={<Estructura />}>
             <Route index element={<EnConstruccion titulo="Inicio" fase={5} />} />
-            <Route path="causas" element={<EnConstruccion titulo="Causas" fase={2} />} />
+            <Route path="causas" element={<PaginaCausas />} />
             <Route path="retiros" element={<EnConstruccion titulo="Retiros de vehículos" fase={3} />} />
             <Route path="boletas" element={<EnConstruccion titulo="Boletas de honorarios" fase={4} />} />
             <Route path="clientes" element={<PaginaClientes />} />
