@@ -137,6 +137,17 @@ export async function marcarRealizada(id: number, d: DatosRealizada): Promise<vo
   if (d.detalleResultado) await recordarValoresNuevos([{ detalleResultado: d.detalleResultado }])
 }
 
+/** Deshace "Marcar realizada": la causa vuelve a Pendiente (se conservan las observaciones) */
+export async function desmarcarRealizada(id: number): Promise<void> {
+  await db.causas.update(id, {
+    estado: 'Pendiente',
+    fechaDiligencia: undefined,
+    resultado: undefined,
+    detalleResultado: undefined,
+    actualizado: ahoraISO(),
+  })
+}
+
 /** Registra un reencargo: nueva fecha de encargo, vuelve a Pendiente y guarda la fecha anterior */
 export async function registrarReencargo(id: number, nueva: { fecha: string; domicilio?: string; nota?: string }): Promise<void> {
   const causa = await db.causas.get(id)

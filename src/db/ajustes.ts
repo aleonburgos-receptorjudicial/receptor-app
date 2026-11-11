@@ -76,6 +76,7 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
   camposRetiro: CAMPOS_RETIRO_BASE,
   modoOscuro: false,
   firmaCobro: 'Mercedes León Burgos — Receptora Judicial · Curanilahue',
+  comunaNavegacion: 'Curanilahue',
   encabezadoHojaRuta: 'Mercedes Andrea León Burgos · Receptora Judicial · Curanilahue',
 }
 

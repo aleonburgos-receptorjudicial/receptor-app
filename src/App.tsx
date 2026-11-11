@@ -6,6 +6,7 @@ import { ProveedorDialogos } from './compartido/Dialogos'
 import { EnConstruccion, Estructura } from './compartido/Estructura'
 import { PaginaBoletas } from './modulos/boletas/PaginaBoletas'
 import { PaginaCausas } from './modulos/causas/PaginaCausas'
+import { PaginaRuta } from './modulos/causas/ruta/PaginaRuta'
 import { PaginaClientes } from './modulos/clientes/PaginaClientes'
 import { FichaCliente } from './modulos/clientes/FichaCliente'
 import { PaginaConfiguracion } from './modulos/configuracion/PaginaConfiguracion'
@@ -30,6 +31,7 @@ export default function App() {
           <Route element={<Estructura />}>
             <Route index element={<EnConstruccion titulo="Inicio" fase={5} />} />
             <Route path="causas" element={<PaginaCausas />} />
+            <Route path="ruta" element={<PaginaRuta />} />
             <Route path="retiros" element={<PaginaRetiros />} />
             <Route path="boletas" element={<PaginaBoletas />} />
             <Route path="clientes" element={<PaginaClientes />} />

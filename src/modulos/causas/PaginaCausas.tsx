@@ -1,7 +1,7 @@
 // Pantalla de Causas (civiles, exhortos y otras): búsqueda, filtros, prioridades y acciones.
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
 import { ESTADOS_CAUSA, type Causa } from '../../db/tipos'
@@ -59,7 +59,8 @@ export function PaginaCausas() {
   const [formAbierto, setFormAbierto] = useState(false)
   const [realizando, setRealizando] = useState<Causa | null>(null)
   const [importando, setImportando] = useState(false)
-  const [hojaRuta, setHojaRuta] = useState(false)
+  const [hojaRuta, setHojaRuta] = useState(parametros.get('ruta') === '1')
+  const navegar = useNavigate()
   const [resumen, setResumen] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [verFiltros, setVerFiltros] = useState(false)
@@ -206,8 +207,11 @@ export function PaginaCausas() {
                 <Boton variante="secundario" className="order-3 col-span-2 sm:order-none" onClick={() => setResumen(true)}>
                   Resumen por cliente
                 </Boton>
-                <Boton variante="secundario" onClick={() => setHojaRuta(true)} className="order-2 col-span-2 sm:order-none">
+                <Boton variante="secundario" onClick={() => setHojaRuta(true)} className="order-2 sm:order-none">
                   Hoja de ruta (PDF)
+                </Boton>
+                <Boton variante="secundario" onClick={() => navegar('/ruta')} className="order-2 sm:order-none">
+                  Ruta del día{ajustes.rutaDelDia?.causaIds.length ? ` (${ajustes.rutaDelDia.causaIds.length})` : ''}
                 </Boton>
               </>
             )}

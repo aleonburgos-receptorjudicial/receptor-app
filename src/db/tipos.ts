@@ -236,6 +236,10 @@ export interface Ajustes {
   ultimoRespaldo?: string
   modoOscuro: boolean
   firmaCobro: string
+  /** Ruta del día: diligencias elegidas, en el orden en que se visitarán */
+  rutaDelDia?: { fecha: string; causaIds: number[] }
+  /** Comuna que se agrega a las direcciones sin comuna al abrir Maps o Waze */
+  comunaNavegacion: string
   /** Línea bajo el título de la hoja de ruta (nombre, cargo y comuna) */
   encabezadoHojaRuta: string
 }

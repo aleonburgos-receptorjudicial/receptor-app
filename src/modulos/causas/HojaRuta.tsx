@@ -1,6 +1,8 @@
 // Hoja de ruta del día: se eligen las diligencias pendientes que se harán (agrupadas por sector)
 // y se genera el PDF para imprimir, con el formato de Mercedes (10 diligencias por hoja).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { guardarAjustes } from '../../db/ajustes'
 import type { Ajustes, Causa, Cliente } from '../../db/tipos'
 import { Boton, Campo } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
@@ -65,6 +67,25 @@ export function HojaRuta({
   const [fecha, setFecha] = useState(hoyISO())
   const [elegidas, setElegidas] = useState<number[]>([])
   const [generando, setGenerando] = useState(false)
+  const navegar = useNavigate()
+  // Al abrir, si hay una ruta del día armada, se parte con esas diligencias marcadas
+  useEffect(() => {
+    if (!abierta || !ajustes.rutaDelDia) return
+    setElegidas(ajustes.rutaDelDia.causaIds)
+    setFecha(ajustes.rutaDelDia.fecha < hoyISO() ? hoyISO() : ajustes.rutaDelDia.fecha)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierta])
+
+  const usarComoRuta = async () => {
+    if (!ordenadas.length) return
+    // Se conserva el orden que ya tenía la ruta y las nuevas van al final
+    const previas = (ajustes.rutaDelDia?.causaIds ?? []).filter((id) => elegidas.includes(id))
+    const nuevas = ordenadas.map((c) => c.id!).filter((id) => !previas.includes(id))
+    await guardarAjustes({ rutaDelDia: { fecha, causaIds: [...previas, ...nuevas] } })
+    avisar(`Ruta del día lista: ${plural(ordenadas.length, 'parada', 'paradas')}`)
+    alCerrar()
+    navegar('/ruta')
+  }
   const grupos = agruparPorSector(causas)
   const visibles = soloSector ? grupos.filter(([s]) => s === soloSector) : grupos
   const total = visibles.reduce((s, [, l]) => s + l.length, 0)
@@ -127,6 +148,9 @@ export function HojaRuta({
           <Boton variante="secundario" onClick={copiar}>
             Copiar como texto
           </Boton>
+          <Boton variante="secundario" onClick={usarComoRuta} disabled={!ordenadas.length}>
+            Usar como ruta del día
+          </Boton>
           <Boton variante="secundario" onClick={() => generar('descargar')} disabled={!ordenadas.length || generando}>
             Descargar PDF
           </Boton>
@@ -141,7 +165,7 @@ export function HojaRuta({
       ) : (
         <div className="flex flex-col gap-5">
           <p className="max-w-[70ch] text-tenue">
-            Marque las diligencias que hará y genere el PDF para imprimir: 10 diligencias por hoja, con casillas para anotar hora y resultado en terreno.
+            Marque las diligencias que hará. Puede generar el PDF para imprimir (10 por hoja) y usarlas como ruta del día en el celular, con Maps y Waze.
           </p>
           <div className="grid gap-3 md:grid-cols-3 md:items-end">
             <Campo etiqueta="Fecha de la hoja de ruta" type="date" value={fecha} min={hoy} onChange={(e) => setFecha(e.target.value || hoy)} />

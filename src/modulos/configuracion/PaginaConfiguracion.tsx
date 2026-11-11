@@ -155,6 +155,21 @@ export function PaginaConfiguracion() {
           />
           <div className="mt-4">
             <Campo
+              etiqueta="Comuna para navegar con Maps y Waze"
+              key={`com${ajustes.comunaNavegacion}`}
+              defaultValue={ajustes.comunaNavegacion}
+              ayuda="Se agrega a los domicilios que no traen comuna, para que Maps y Waze los encuentren."
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v !== ajustes.comunaNavegacion) {
+                  guardarAjustes({ comunaNavegacion: v })
+                  avisar('Comuna para navegar guardada')
+                }
+              }}
+            />
+          </div>
+          <div className="mt-4">
+            <Campo
               etiqueta="Línea bajo el título de la hoja de ruta"
               key={ajustes.encabezadoHojaRuta}
               defaultValue={ajustes.encabezadoHojaRuta}
