@@ -236,6 +236,8 @@ export interface Ajustes {
   ultimoRespaldo?: string
   modoOscuro: boolean
   firmaCobro: string
+  /** Línea bajo el título de la hoja de ruta (nombre, cargo y comuna) */
+  encabezadoHojaRuta: string
 }
 
 export interface FilaAjustes {

@@ -207,7 +207,7 @@ export function PaginaCausas() {
                   Resumen por cliente
                 </Boton>
                 <Boton variante="secundario" onClick={() => setHojaRuta(true)} className="order-2 col-span-2 sm:order-none">
-                  Hoja de ruta del día
+                  Hoja de ruta (PDF)
                 </Boton>
               </>
             )}

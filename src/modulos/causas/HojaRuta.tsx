@@ -1,7 +1,8 @@
-// Hoja de ruta del día: causas pendientes agrupadas por sector, las más urgentes primero.
+// Hoja de ruta del día: se eligen las diligencias pendientes que se harán (agrupadas por sector)
+// y se genera el PDF para imprimir, con el formato de Mercedes (10 diligencias por hoja).
 import { useState } from 'react'
 import type { Ajustes, Causa, Cliente } from '../../db/tipos'
-import { Boton } from '../../compartido/Controles'
+import { Boton, Campo } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { fechaCL, hoyISO, plural } from '../../utilidades/formato'
@@ -26,6 +27,24 @@ export function agruparPorSector(causas: Causa[]): [string, Causa[]][] {
   return [...grupos.entries()].sort(([a], [b]) => (a === SIN_SECTOR ? 1 : b === SIN_SECTOR ? -1 : a.localeCompare(b, 'es')))
 }
 
+const POR_HOJA = 10
+
+/** Abre el PDF en una pestaña nueva (para imprimir) o lo descarga */
+function entregarPdf(pdf: Blob, nombre: string, modo: 'abrir' | 'descargar') {
+  const url = URL.createObjectURL(pdf)
+  const enlace = document.createElement('a')
+  enlace.href = url
+  if (modo === 'descargar') enlace.download = nombre
+  else {
+    enlace.target = '_blank'
+    enlace.rel = 'noopener'
+  }
+  document.body.appendChild(enlace)
+  enlace.click()
+  enlace.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000)
+}
+
 export function HojaRuta({
   abierta,
   causas,
@@ -43,54 +62,89 @@ export function HojaRuta({
 }) {
   const avisar = useAviso()
   const [soloSector, setSoloSector] = useState('')
+  const [fecha, setFecha] = useState(hoyISO())
+  const [elegidas, setElegidas] = useState<number[]>([])
+  const [generando, setGenerando] = useState(false)
   const grupos = agruparPorSector(causas)
   const visibles = soloSector ? grupos.filter(([s]) => s === soloSector) : grupos
   const total = visibles.reduce((s, [, l]) => s + l.length, 0)
   const cliente = new Map(clientes.map((c) => [c.id, c.nombre]))
   const hoy = hoyISO()
+  // Se mantiene el orden de la lista (por sector, urgentes y más antiguas primero)
+  const ordenadas = grupos.flatMap(([, l]) => l).filter((c) => elegidas.includes(c.id!))
+  const hojas = Math.ceil(ordenadas.length / POR_HOJA)
+
+  const alternar = (id: number) => setElegidas((e) => (e.includes(id) ? e.filter((x) => x !== id) : [...e, id]))
+  const alternarSector = (lista: Causa[]) => {
+    const ids = lista.map((c) => c.id!)
+    const todas = ids.every((id) => elegidas.includes(id))
+    setElegidas((e) => (todas ? e.filter((x) => !ids.includes(x)) : Array.from(new Set([...e, ...ids]))))
+  }
+
+  const generar = async (modo: 'abrir' | 'descargar') => {
+    if (!ordenadas.length) return
+    setGenerando(true)
+    try {
+      // El generador de PDF se carga solo cuando se usa
+      const { generarHojaRuta } = await import('./hojaRutaPdf')
+      const pdf = await generarHojaRuta(
+        ordenadas.map((c) => ({ causa: c, solicitante: c.clienteId ? cliente.get(c.clienteId) : c.mandante })),
+        fecha,
+        ajustes.encabezadoHojaRuta,
+      )
+      entregarPdf(pdf, `Hoja de ruta ${fechaCL(fecha)}.pdf`, modo)
+      avisar(`Hoja de ruta lista: ${plural(ordenadas.length, 'diligencia', 'diligencias')} en ${plural(hojas, 'hoja', 'hojas')}.`)
+    } catch {
+      avisar('No se pudo generar el PDF. Intente de nuevo.', 'error')
+    } finally {
+      setGenerando(false)
+    }
+  }
 
   const copiar = async () => {
-    const lineas = [`Hoja de ruta ${fechaCL(hoy)}`, '']
-    for (const [sector, lista] of visibles) {
-      lineas.push(`${sector.toUpperCase()} (${lista.length})`)
-      lista.forEach((c, i) => {
-        lineas.push(`${i + 1}. ${c.rol}${c.urgente ? ' [URGENTE]' : ''} — ${c.tipoDiligencia ?? 'Diligencia'}`)
-        lineas.push(`   ${c.demandado ?? 'Demandado sin nombre'} · ${c.domicilio ?? 'Sin domicilio'}`)
-      })
-      lineas.push('')
-    }
-    const texto = lineas.join('\n')
+    const lista = ordenadas.length ? ordenadas : visibles.flatMap(([, l]) => l)
+    const lineas = [`Hoja de ruta ${fechaCL(fecha)}`, '']
+    lista.forEach((c, i) => {
+      lineas.push(`${i + 1}. ${c.rol}${c.urgente ? ' [URGENTE]' : ''}, ${c.tipoDiligencia ?? 'diligencia'}`)
+      lineas.push(`   ${c.demandado ?? 'Demandado sin nombre'}, ${c.domicilio ?? 'sin domicilio'}${c.sector ? ` (${c.sector})` : ''}`)
+    })
     try {
-      await navigator.clipboard.writeText(texto)
+      await navigator.clipboard.writeText(lineas.join('\n'))
       avisar('Hoja de ruta copiada. Puede pegarla en WhatsApp o en un correo.')
     } catch {
-      avisar('No se pudo copiar automáticamente. Use el botón Imprimir.', 'error')
+      avisar('No se pudo copiar automáticamente. Use «Generar PDF».', 'error')
     }
   }
 
   return (
     <Ventana
       abierta={abierta}
-      titulo={`Hoja de ruta del ${fechaCL(hoy)}`}
+      titulo="Hoja de ruta"
       alCerrar={alCerrar}
       ancho="max-w-4xl"
       pie={
         <>
-          <Boton variante="secundario" onClick={() => window.print()}>
-            Imprimir
-          </Boton>
           <Boton variante="secundario" onClick={copiar}>
             Copiar como texto
           </Boton>
-          <Boton onClick={alCerrar}>Cerrar</Boton>
+          <Boton variante="secundario" onClick={() => generar('descargar')} disabled={!ordenadas.length || generando}>
+            Descargar PDF
+          </Boton>
+          <Boton onClick={() => generar('abrir')} disabled={!ordenadas.length || generando}>
+            {generando ? 'Generando…' : ordenadas.length ? `Generar PDF (${plural(hojas, 'hoja', 'hojas')})` : 'Generar PDF'}
+          </Boton>
         </>
       }
     >
       {grupos.length === 0 ? (
         <p className="text-lg">No hay causas pendientes. Buen trabajo.</p>
       ) : (
-        <div className="flex flex-col gap-6 hoja-ruta">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-5">
+          <p className="max-w-[70ch] text-tenue">
+            Marque las diligencias que hará y genere el PDF para imprimir: 10 diligencias por hoja, con casillas para anotar hora y resultado en terreno.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3 md:items-end">
+            <Campo etiqueta="Fecha de la hoja de ruta" type="date" value={fecha} min={hoy} onChange={(e) => setFecha(e.target.value || hoy)} />
             <label className="flex flex-col gap-1">
               <span className="font-bold">Sector</span>
               <select className="min-h-12 rounded-lg border-2 border-borde bg-superficie px-3" value={soloSector} onChange={(e) => setSoloSector(e.target.value)}>
@@ -102,36 +156,60 @@ export function HojaRuta({
                 ))}
               </select>
             </label>
-            <p className="font-bold text-tenue">{plural(total, 'causa pendiente', 'causas pendientes')}</p>
+            <div className="flex flex-col gap-1 rounded-lg bg-petroleo-suave px-3 py-2" aria-live="polite">
+              <span className="font-bold text-petroleo">{plural(ordenadas.length, 'diligencia elegida', 'diligencias elegidas')}</span>
+              <span className="text-sm text-tenue">
+                {ordenadas.length ? `${plural(hojas, 'hoja', 'hojas')} de 10 · ` : ''}
+                {plural(total, 'pendiente', 'pendientes')} {soloSector ? 'en este sector' : 'en total'}
+              </span>
+            </div>
           </div>
-          {visibles.map(([sector, lista]) => (
-            <section key={sector}>
-              <h3 className="mb-2 font-serif text-xl font-bold">
-                {sector} <span className="font-sans text-base font-normal text-tenue">({lista.length})</span>
-              </h3>
-              <ol className="flex flex-col gap-2">
-                {lista.map((c) => (
-                  <li key={c.id} className="flex flex-col gap-2 rounded-lg border border-borde p-3 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-2">
-                        <span className="font-serif text-lg font-bold cifra">{c.rol}</span>
-                        {c.urgente && <MarcaUrgente />}
-                        <EtiquetaPrioridad nivel={prioridadCausa(c, ajustes.umbralesCausas, hoy)} dias={diasDesdeEncargo(c, hoy)} />
-                      </p>
-                      <p>{c.domicilio ?? <span className="text-tenue">Sin domicilio registrado</span>}</p>
-                      <p className="text-tenue">
-                        {c.tipoDiligencia ?? 'Diligencia'} · {c.demandado ?? 'Demandado sin nombre'}
-                        {c.clienteId ? ` · ${cliente.get(c.clienteId) ?? ''}` : ''}
-                      </p>
-                    </div>
-                    <Boton variante="secundario" className="no-imprimir shrink-0" onClick={() => alMarcar(c)}>
-                      Marcar realizada
-                    </Boton>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ))}
+          {elegidas.length > 0 && (
+            <Boton variante="discreto" className="self-start" onClick={() => setElegidas([])}>
+              Quitar todas las marcas
+            </Boton>
+          )}
+          {visibles.map(([sector, lista]) => {
+            const todas = lista.every((c) => elegidas.includes(c.id!))
+            return (
+              <section key={sector}>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-serif text-xl font-bold">
+                    {sector} <span className="font-sans text-base font-normal text-tenue">({lista.length})</span>
+                  </h3>
+                  <Boton variante="discreto" className="min-h-10 py-1" onClick={() => alternarSector(lista)}>
+                    {todas ? 'Quitar las de este sector' : 'Elegir todas las de este sector'}
+                  </Boton>
+                </div>
+                <ol className="flex flex-col gap-2">
+                  {lista.map((c) => {
+                    const marcada = elegidas.includes(c.id!)
+                    return (
+                      <li key={c.id} className={`flex flex-col gap-2 rounded-lg border-2 p-3 md:flex-row md:items-center md:justify-between ${marcada ? 'border-petroleo bg-petroleo-suave' : 'border-borde'}`}>
+                        <label className="flex min-w-0 flex-1 cursor-pointer gap-3">
+                          <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-[var(--petroleo)]" checked={marcada} onChange={() => alternar(c.id!)} aria-label={`Incluir ${c.rol} en la hoja de ruta`} />
+                          <span className="min-w-0">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span className="font-serif text-lg font-bold cifra">{c.rol}</span>
+                              {c.urgente && <MarcaUrgente />}
+                              <EtiquetaPrioridad nivel={prioridadCausa(c, ajustes.umbralesCausas, hoy)} dias={diasDesdeEncargo(c, hoy)} />
+                            </span>
+                            <span className="block">{c.domicilio ?? <span className="text-tenue">Sin domicilio registrado</span>}</span>
+                            <span className="block text-tenue">
+                              {[c.tipoDiligencia ?? 'Diligencia', c.demandado ?? 'Demandado sin nombre', c.clienteId ? cliente.get(c.clienteId) : ''].filter(Boolean).join(', ')}
+                            </span>
+                          </span>
+                        </label>
+                        <Boton variante="secundario" className="shrink-0" onClick={() => alMarcar(c)}>
+                          Marcar realizada
+                        </Boton>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </section>
+            )
+          })}
         </div>
       )}
     </Ventana>

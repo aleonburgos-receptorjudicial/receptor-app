@@ -153,6 +153,21 @@ export function PaginaConfiguracion() {
             }}
             ayuda="Se pone solo en cada causa nueva y en las importaciones."
           />
+          <div className="mt-4">
+            <Campo
+              etiqueta="Línea bajo el título de la hoja de ruta"
+              key={ajustes.encabezadoHojaRuta}
+              defaultValue={ajustes.encabezadoHojaRuta}
+              ayuda="Aparece en cada hoja del PDF de la hoja de ruta."
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v && v !== ajustes.encabezadoHojaRuta) {
+                  guardarAjustes({ encabezadoHojaRuta: v })
+                  avisar('Encabezado de la hoja de ruta guardado')
+                }
+              }}
+            />
+          </div>
         </div>
       </Seccion>
 
