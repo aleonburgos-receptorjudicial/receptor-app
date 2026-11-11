@@ -6,6 +6,8 @@ import { guardarAjustes, useAjustes } from '../../db/ajustes'
 import { borrarDatosEjemplo, cargarDatosEjemplo, hayDatosEjemplo } from '../../db/ejemplo'
 import { Boton, Campo, EncabezadoPagina, Seccion } from '../../compartido/Controles'
 import { EditorCamposRetiro } from './EditorCamposRetiro'
+import { SeccionInstalar } from './SeccionInstalar'
+import { SeccionRespaldos } from './SeccionRespaldos'
 import { EditorLista } from './EditorLista'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoLuna } from '../../compartido/Iconos'
@@ -92,6 +94,9 @@ export function PaginaConfiguracion() {
   return (
     <div className="flex flex-col gap-6">
       <EncabezadoPagina titulo="Configuración y respaldos" descripcion="Ajuste la app a su forma de trabajar." />
+
+      <SeccionRespaldos />
+      <SeccionInstalar />
 
       <Seccion titulo="Apariencia">
         <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4">
@@ -329,11 +334,6 @@ export function PaginaConfiguracion() {
         {conEjemplo && <p className="mt-3 font-bold text-petroleo">Hay datos de ejemplo cargados.</p>}
       </Seccion>
 
-      <Seccion titulo="Próximamente">
-        <p className="text-tenue">
-          En la próxima fase se agrega aquí el respaldo completo de sus datos (exportar e importar).
-        </p>
-      </Seccion>
     </div>
   )
 }

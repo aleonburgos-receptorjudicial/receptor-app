@@ -83,14 +83,16 @@ export function Estructura() {
   )
 }
 
-/** Pantalla provisoria para los módulos que se construyen en fases siguientes */
-export function EnConstruccion({ titulo, fase }: { titulo: string; fase: number }) {
+/** Dirección que no existe dentro de la app */
+export function NoEncontrada() {
   return (
     <div>
-      <h1 className="font-serif text-3xl font-bold md:text-4xl">{titulo}</h1>
+      <h1 className="font-serif text-3xl font-bold md:text-4xl">Página no encontrada</h1>
       <div className="mt-6 rounded-xl border-2 border-dashed border-borde bg-superficie px-6 py-10 text-center">
-        <p className="font-serif text-xl font-bold">Esta sección se construye en la fase {fase}</p>
-        <p className="mt-2 text-tenue">Por ahora puede usar el módulo Clientes y la Configuración.</p>
+        <p className="text-lg">Esta pantalla no existe.</p>
+        <NavLink to="/" className="mt-4 inline-flex min-h-12 items-center rounded-lg bg-petroleo px-4 font-bold text-sobre-petroleo">
+          Ir al Inicio
+        </NavLink>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 // Pantalla de Causas (civiles, exhortos y otras): búsqueda, filtros, prioridades y acciones.
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../../db/basedatos'
@@ -51,7 +51,7 @@ export function PaginaCausas() {
   const ajustes = useAjustes()
   const confirmar = useConfirmar()
   const avisar = useAviso()
-  const [parametros] = useSearchParams()
+  const [parametros, setParametros] = useSearchParams()
   const [busqueda, setBusqueda] = useState('')
   const [filtros, setFiltros] = useState<Filtros>({ ...SIN_FILTROS, cliente: parametros.get('cliente') ?? '' })
   const [limite, setLimite] = useState(PASO)
@@ -64,6 +64,25 @@ export function PaginaCausas() {
   const [resumen, setResumen] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [verFiltros, setVerFiltros] = useState(false)
+
+  // Enlaces desde Inicio: filtros ya puestos (?prioridad=…, ?estado=…) y acciones (?nueva=1, ?importar=1)
+  useEffect(() => {
+    const prioridad = parametros.get('prioridad')
+    const estado = parametros.get('estado')
+    if (prioridad || estado) setFiltros({ ...SIN_FILTROS, prioridad: prioridad ?? '', estado: estado ?? '', cliente: parametros.get('cliente') ?? '' })
+    if (parametros.get('nueva') === '1') {
+      setEditando(undefined)
+      setFormAbierto(true)
+    }
+    if (parametros.get('importar') === '1') setImportando(true)
+    if (parametros.get('ruta') === '1') setHojaRuta(true)
+    if (parametros.has('nueva') || parametros.has('importar') || parametros.has('ruta')) {
+      const resto = new URLSearchParams(parametros)
+      ;['nueva', 'importar', 'ruta'].forEach((k) => resto.delete(k))
+      setParametros(resto, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parametros])
 
   const datos = useLiveQuery(async () => {
     const [causas, clientes] = await Promise.all([db.causas.toArray(), db.clientes.orderBy('nombre').toArray()])

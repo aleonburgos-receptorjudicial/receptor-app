@@ -3,7 +3,8 @@ import { useEffect } from 'react'
 import { HashRouter, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { useAjustes } from './db/ajustes'
 import { ProveedorDialogos } from './compartido/Dialogos'
-import { EnConstruccion, Estructura } from './compartido/Estructura'
+import { Estructura, NoEncontrada } from './compartido/Estructura'
+import { PaginaInicio } from './modulos/inicio/PaginaInicio'
 import { PaginaBoletas } from './modulos/boletas/PaginaBoletas'
 import { PaginaCausas } from './modulos/causas/PaginaCausas'
 import { PaginaRuta } from './modulos/causas/ruta/PaginaRuta'
@@ -29,7 +30,7 @@ export default function App() {
       <Enrutador>
         <Routes>
           <Route element={<Estructura />}>
-            <Route index element={<EnConstruccion titulo="Inicio" fase={5} />} />
+            <Route index element={<PaginaInicio />} />
             <Route path="causas" element={<PaginaCausas />} />
             <Route path="ruta" element={<PaginaRuta />} />
             <Route path="retiros" element={<PaginaRetiros />} />
@@ -37,7 +38,7 @@ export default function App() {
             <Route path="clientes" element={<PaginaClientes />} />
             <Route path="clientes/:id" element={<FichaCliente />} />
             <Route path="configuracion" element={<PaginaConfiguracion />} />
-            <Route path="*" element={<EnConstruccion titulo="Página no encontrada" fase={1} />} />
+            <Route path="*" element={<NoEncontrada />} />
           </Route>
         </Routes>
       </Enrutador>

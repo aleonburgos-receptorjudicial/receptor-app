@@ -35,7 +35,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Navegación con HashRouter; la vista previa en claude.ai se compila con `VITE_ENRUTADOR=memoria` (MemoryRouter).
 - Código ordenado por módulos en `src/modulos/`; `src/sincronizacion/` queda reservado para Supabase/Drive (no implementar aún).
 - Comentarios del código en español.
-- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas ✅, 5) Inicio, respaldos, PWA y pruebas finales.
+- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas ✅, 5) Inicio, respaldos, PWA y pruebas finales ✅.
 
 ## Datos
 - Guardar la información (causas, notificaciones, plazos, honorarios) **localmente en el navegador**.
@@ -80,3 +80,10 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Hoja de ruta en PDF (Causas → «Hoja de ruta (PDF)», `hojaRutaPdf.ts` con pdf-lib): formato de Mercedes, carta horizontal, 10 diligencias por hoja (numeración continua y filas vacías al final), casillas Personal/Art. 44/Cédula/Otra y Resultado. Se eligen las diligencias por causa o por sector y la fecha. Encabezado editable en Ajustes (`encabezadoHojaRuta`).
 - Ruta del día (Nivel 1, privada, `src/modulos/causas/ruta/`): pantalla `/ruta` con las diligencias elegidas en «Hoja de ruta» → «Usar como ruta del día» (`ajustes.rutaDelDia`), avance X de N, orden con flechas, Maps/Waze por parada, recorrido de Google Maps en tramos de 9 paradas, Realizada/Desmarcar. La dirección sale del equipo solo al tocar Maps o Waze. Comuna por defecto para navegar en Ajustes (`comunaNavegacion`).
 - PENDIENTE (Nivel 2, aprobado por Mercedes para más adelante): mapa con puntos y ruta optimizada. Requiere enviar direcciones a un servicio de geocodificación: debe quedar APAGADO por defecto, con interruptor y explicación clara en Ajustes.
+
+## Decisiones de la fase 5 (Inicio, respaldos, instalación)
+- Inicio (`src/modulos/inicio/`): contadores con enlace filtrado, alertas de todos los módulos ordenadas por urgencia (crítica/alta/media; causas y boletas agrupadas, retiros uno por uno), accesos rápidos (`?nueva=1`, `?nuevo=1`, `?importar=1`), tarjeta de la ruta del día y gráficos pequeños.
+- Respaldo completo en JSON (incluye PDF adjuntos en base64 y ajustes) y restauración que reemplaza todo tras confirmar; Excel con una hoja por módulo para revisar. `ultimoRespaldo` se anota al descargar el JSON; aviso si pasan más de 7 días.
+- PWA con vite-plugin-pwa (autoUpdate, funciona sin internet). Se desactiva en la vista previa (`VITE_ENRUTADOR=memoria`). Se pide almacenamiento persistente al iniciar.
+- Publicación: `bash scripts/publicar.sh` sube `dist/` a la rama `gh-pages` (GitHub Pages: https://aleonburgos-receptorjudicial.github.io/receptor-app/). Publicar requiere la autorización explícita de Mercedes.
+- Cada equipo (computador, celular) guarda sus propios datos: para pasarlos de uno a otro se usa el respaldo.

@@ -1,6 +1,7 @@
 // Pantalla de Boletas de honorarios: indicadores, antigüedad de la deuda, emisión mensual, avance por cliente y lista.
 // Las boletas ANULADAS solo aparecen en la pestaña "Anuladas": no entran en totales, gráficos, alertas ni barras.
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
@@ -47,6 +48,20 @@ export function PaginaBoletas() {
   const [importando, setImportando] = useState(false)
   const [recordatorio, setRecordatorio] = useState<{ clave: string; nombre: string; clienteId?: number } | null>(null)
   const [todosClientes, setTodosClientes] = useState(false)
+  const [parametros, setParametros] = useSearchParams()
+  // Enlaces desde Inicio: ?pestana=impagas y ?nueva=1
+  useEffect(() => {
+    const p = parametros.get('pestana')
+    if (p === 'vigentes' || p === 'impagas' || p === 'pagadas' || p === 'anuladas') setPestana(p)
+    if (parametros.get('nueva') === '1') {
+      setEditando(undefined)
+      setFormAbierto(true)
+      const resto = new URLSearchParams(parametros)
+      resto.delete('nueva')
+      setParametros(resto, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parametros])
 
   const datos = useLiveQuery(async () => {
     const [boletas, pagos, clientes] = await Promise.all([db.boletas.toArray(), db.pagos.toArray(), db.clientes.orderBy('nombre').toArray()])

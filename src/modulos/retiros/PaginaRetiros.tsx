@@ -1,6 +1,7 @@
 // Pantalla de Retiros de vehículos: registro aparte de las causas, con vencimientos y alertas.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useSearchParams } from 'react-router-dom'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
 import { ESTADOS_RETIRO, type Archivo, type Retiro } from '../../db/tipos'
@@ -33,6 +34,23 @@ export function PaginaRetiros() {
   const [formAbierto, setFormAbierto] = useState(false)
   const [retirando, setRetirando] = useState<Retiro | null>(null)
   const [exportando, setExportando] = useState(false)
+  const [parametros, setParametros] = useSearchParams()
+  // Enlaces desde Inicio: ?vence=vencido|renovar|prioridad y ?nuevo=1
+  useEffect(() => {
+    const v = parametros.get('vence')
+    if (v) {
+      setEstado('activos')
+      setVence(v)
+    }
+    if (parametros.get('nuevo') === '1') {
+      setEditando(undefined)
+      setFormAbierto(true)
+      const resto = new URLSearchParams(parametros)
+      resto.delete('nuevo')
+      setParametros(resto, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parametros])
 
   const datos = useLiveQuery(async () => {
     const [retiros, clientes, archivos] = await Promise.all([db.retiros.toArray(), db.clientes.orderBy('nombre').toArray(), db.archivos.toArray()])
