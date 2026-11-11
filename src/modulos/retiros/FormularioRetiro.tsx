@@ -5,38 +5,50 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
 import { ESTADOS_RETIRO, type CampoRetiro, type Retiro } from '../../db/tipos'
-import { AreaTexto, Boton, Campo, Casilla, Selector } from '../../compartido/Controles'
+import { AreaTexto, Boton, Campo, CampoConLista, Casilla, Selector } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
-import { fechaCL, hoyISO, sumarDias } from '../../utilidades/formato'
+import { diasEntre, fechaCL, hoyISO, plural, sumarDias } from '../../utilidades/formato'
 import { formatearPatente, patenteValida } from '../../utilidades/patente'
 import { FormularioCliente } from '../clientes/FormularioCliente'
 import { Placa } from './Piezas'
 import { buscarRetiroDuplicado, guardarRetiro, validarRetiro, valorCampo, type DatosRetiro, type ErroresRetiro, type ValorExtra } from './servicioRetiros'
 
-function retiroVacio(tribunal: string): DatosRetiro {
-  const hoy = hoyISO()
-  return { rol: '', tribunal, fechaEncargo: hoy, fechaVencimiento: sumarDias(hoy, 30), estado: 'Pendiente' }
+// Los retiros suelen venir de otros tribunales: el tribunal parte vacío (con sugerencias)
+function retiroVacio(): DatosRetiro {
+  return { rol: '', tribunal: '', fechaEncargo: hoyISO(), fechaEmision: '', fechaVencimiento: '', estado: 'Pendiente' }
 }
 
 // Campos que ocupan todo el ancho del formulario
-const ANCHOS = new Set(['tribunal', 'direccion', 'observaciones', 'clienteId'])
+const ANCHOS = new Set(['tribunal', 'direccion', 'observaciones', 'clienteId', 'martilleroDireccion'])
+
+/** Valores sin repetir y ordenados, para sugerir al escribir */
+const sugerencias = (valores: (string | undefined)[]) =>
+  Array.from(new Set(valores.map((v) => v?.trim()).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, 'es'))
 
 export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boolean; retiro?: Retiro; alCerrar: () => void }) {
   const ajustes = useAjustes()
   const avisar = useAviso()
-  const [d, setD] = useState<DatosRetiro>(retiroVacio(ajustes.tribunalPorDefecto))
+  const [d, setD] = useState<DatosRetiro>(retiroVacio())
   const [errores, setErrores] = useState<ErroresRetiro>({})
   const [duplicado, setDuplicado] = useState<Retiro | null>(null)
   const [nuevoCliente, setNuevoCliente] = useState(false)
   const clientes = useLiveQuery(() => db.clientes.orderBy('nombre').toArray(), []) ?? []
+  // Tribunales y mandantes ya usados, para sugerirlos
+  const usados = useLiveQuery(async () => {
+    const [retiros, causas] = await Promise.all([db.retiros.toArray(), db.causas.toArray()])
+    return {
+      tribunales: sugerencias([...retiros.map((r) => r.tribunal), ajustes.tribunalPorDefecto]),
+      mandantes: sugerencias([...retiros.map((r) => r.mandante), ...causas.map((c) => c.mandante)]),
+    }
+  }, [ajustes.tribunalPorDefecto]) ?? { tribunales: [], mandantes: [] }
 
   useEffect(() => {
     if (!abierta) return
     if (retiro) {
       const { id: _i, creado: _c, actualizado: _a, ejemplo: _e, ...resto } = retiro
       setD(resto)
-    } else setD(retiroVacio(ajustes.tribunalPorDefecto))
+    } else setD(retiroVacio())
     setErrores({})
     setDuplicado(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -44,6 +56,14 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
 
   const poner = (campo: CampoRetiro, valor: ValorExtra | undefined) => {
     setErrores((e) => ({ ...e, [campo.clave]: undefined }))
+    // Con una vigencia habitual configurada, al poner la emisión se propone el vencimiento
+    if (campo.clave === 'fechaEmision' && typeof valor === 'string' && valor && ajustes.vigenciaOficioDias) {
+      const anterior = d.fechaEmision ? sumarDias(d.fechaEmision, ajustes.vigenciaOficioDias) : ''
+      if (!d.fechaVencimiento || d.fechaVencimiento === anterior) {
+        setD((x) => ({ ...x, fechaEmision: valor, fechaVencimiento: sumarDias(valor, ajustes.vigenciaOficioDias!) }))
+        return
+      }
+    }
     if (campo.clave === 'rol' || campo.clave === 'patente') setDuplicado(null)
     if (campo.base) setD((x) => ({ ...x, [campo.clave]: valor ?? undefined }))
     else setD((x) => ({ ...x, extras: { ...(x.extras ?? {}), [campo.clave]: valor ?? null } }))
@@ -122,16 +142,25 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
         return <AreaTexto {...comun} value={texto} onChange={(e) => poner(c, e.target.value)} rows={4} />
       case 'horaRetiro':
         return <Campo {...comun} type="time" value={texto} onChange={(e) => poner(c, e.target.value)} />
-      case 'fechaVencimiento':
-        return (
-          <Campo
-            {...comun}
-            type="date"
-            value={texto}
-            onChange={(e) => poner(c, e.target.value)}
-            ayuda={d.fechaEncargo && texto ? `Plazo de ${Math.max(0, Math.round((Date.parse(texto) - Date.parse(d.fechaEncargo)) / 86400000))} días desde el encargo.` : undefined}
-          />
-        )
+      case 'fechaEmision':
+        return <Campo {...comun} type="date" value={texto} max={hoyISO()} onChange={(e) => poner(c, e.target.value)} />
+      case 'fechaVencimiento': {
+        let ayuda: string | undefined
+        if (texto) {
+          const faltan = diasEntre(hoyISO(), texto)
+          const vigencia = d.fechaEmision ? `Vigencia de ${plural(diasEntre(d.fechaEmision, texto), 'día', 'días')} desde la emisión. ` : ''
+          ayuda = vigencia + (faltan < 0 ? 'Este oficio ya está vencido.' : faltan === 0 ? 'Vence hoy.' : `Faltan ${plural(faltan, 'día', 'días')}.`)
+        } else if (ajustes.vigenciaOficioDias) ayuda = `Se propone solo al poner la fecha de emisión (${ajustes.vigenciaOficioDias} días).`
+        return <Campo {...comun} type="date" value={texto} onChange={(e) => poner(c, e.target.value)} ayuda={ayuda} />
+      }
+      case 'tribunal':
+        return <CampoConLista {...comun} opciones={usados.tribunales} value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="Ej.: 1er Juzgado Civil de Concepción" />
+      case 'mandante':
+        return <CampoConLista {...comun} opciones={usados.mandantes} value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="Ej.: BK, FORUM, TANNER" />
+      case 'direccion':
+        return <AreaTexto {...comun} value={texto} onChange={(e) => poner(c, e.target.value)} rows={3} placeholder="Un domicilio por línea, el más probable primero" />
+      case 'martilleroTelefono':
+        return <Campo {...comun} type="tel" inputMode="tel" value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="+56 9 1234 5678" />
     }
 
     switch (c.tipo) {
@@ -169,7 +198,15 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
     }
   }
 
-  const visibles = ajustes.camposRetiro.filter((c) => c.visible)
+  // Algunos campos solo se muestran cuando corresponden (el formulario queda más corto)
+  const DATOS_DEL_RETIRO = new Set(['fechaRetiro', 'horaRetiro', 'lugarRetiro', 'custodio'])
+  const corresponde = (c: CampoRetiro) => {
+    if (DATOS_DEL_RETIRO.has(c.clave)) return d.estado === 'Retirado' || !!valorCampo(d, c)
+    if (c.clave === 'fechaFuerzaSolicitada') return !!d.fuerzaPublicaSolicitada || !!d.fechaFuerzaSolicitada
+    if (c.clave === 'fechaFuerzaConcedida') return !!d.fuerzaPublicaConcedida || !!d.fechaFuerzaConcedida
+    return true
+  }
+  const visibles = ajustes.camposRetiro.filter((c) => c.visible && corresponde(c))
 
   return (
     <>

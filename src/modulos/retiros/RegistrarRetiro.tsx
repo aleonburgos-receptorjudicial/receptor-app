@@ -1,4 +1,4 @@
-// Registra en un solo paso que el vehículo fue retirado: fecha, hora y depósito o custodio.
+// Registra en un solo paso que el vehículo fue retirado: día, hora, lugar del retiro y depósito o custodio.
 import { useEffect, useState } from 'react'
 import type { Retiro } from '../../db/tipos'
 import { AreaTexto, Boton, Campo } from '../../compartido/Controles'
@@ -12,6 +12,7 @@ export function RegistrarRetiro({ retiro, alCerrar }: { retiro: Retiro | null; a
   const avisar = useAviso()
   const [fecha, setFecha] = useState(hoyISO())
   const [hora, setHora] = useState('')
+  const [lugar, setLugar] = useState('')
   const [custodio, setCustodio] = useState('')
   const [obs, setObs] = useState('')
   const [error, setError] = useState<{ fecha?: string; hora?: string }>({})
@@ -21,6 +22,7 @@ export function RegistrarRetiro({ retiro, alCerrar }: { retiro: Retiro | null; a
     const ahora = new Date()
     setFecha(hoyISO())
     setHora(`${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`)
+    setLugar(retiro.lugarRetiro ?? '')
     setCustodio(retiro.custodio ?? '')
     setObs(retiro.observaciones ?? '')
     setError({})
@@ -34,7 +36,7 @@ export function RegistrarRetiro({ retiro, alCerrar }: { retiro: Retiro | null; a
     if (hora && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(hora)) er.hora = 'Escriba la hora como 14:30.'
     setError(er)
     if (Object.keys(er).length || !retiro?.id) return
-    await registrarRetiro(retiro.id, { fecha, hora, custodio, observaciones: obs })
+    await registrarRetiro(retiro.id, { fecha, hora, lugar, custodio, observaciones: obs })
     avisar(`Retiro registrado: ${retiro.patente ?? retiro.rol}`)
     alCerrar()
   }
@@ -66,6 +68,7 @@ export function RegistrarRetiro({ retiro, alCerrar }: { retiro: Retiro | null; a
             <Campo etiqueta="Fecha del retiro" type="date" obligatorio value={fecha} max={hoyISO()} onChange={(e) => setFecha(e.target.value)} error={error.fecha} />
             <Campo etiqueta="Hora del retiro" type="time" value={hora} onChange={(e) => setHora(e.target.value)} error={error.hora} />
           </div>
+          <Campo etiqueta="Lugar del retiro" value={lugar} onChange={(e) => setLugar(e.target.value)} placeholder="Dirección donde se encontró y retiró el vehículo" />
           <Campo etiqueta="Depósito o custodio" value={custodio} onChange={(e) => setCustodio(e.target.value)} placeholder="Nombre del depósito o del custodio" />
           <AreaTexto etiqueta="Observaciones" value={obs} onChange={(e) => setObs(e.target.value)} rows={4} />
         </div>

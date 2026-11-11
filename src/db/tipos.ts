@@ -77,8 +77,20 @@ export interface Retiro extends RegistroBase {
   modelo?: string
   anio?: number
   color?: string
+  /** Domicilios donde es más probable ubicar el vehículo */
   direccion?: string
+  /** Dónde se sacó la revisión técnica */
+  revisionTecnica?: string
+  /** Dónde se sacó el permiso de circulación */
+  permisoCirculacion?: string
+  martilleroNombre?: string
+  martilleroTelefono?: string
+  martilleroDireccion?: string
+  /** Fecha de emisión del oficio (obligatoria al ingresar) */
+  fechaEmision?: string
+  /** Fecha en que llegó el encargo */
   fechaEncargo: string
+  /** Fecha de vencimiento del oficio */
   fechaVencimiento: string
   estado: EstadoRetiro
   fuerzaPublicaSolicitada?: boolean
@@ -88,6 +100,8 @@ export interface Retiro extends RegistroBase {
   custodio?: string
   fechaRetiro?: string
   horaRetiro?: string
+  /** Lugar donde se retiró el vehículo */
+  lugarRetiro?: string
   observaciones?: string
   /** Valores de los campos personalizados (clave del campo → valor) */
   extras?: Record<string, string | number | boolean | null>
@@ -144,6 +158,8 @@ export interface Ajustes {
   umbralesCausas: { reciente: number; media: number; alta: number }
   /** Días restantes para retiros: sobre "verde" es verde, desde "amarillo" amarillo, desde 1 naranja, vencido rojo */
   umbralesRetiros: { verde: number; amarillo: number }
+  /** Vigencia habitual del oficio de retiro, en días (para proponer el vencimiento); vacío = no proponer */
+  vigenciaOficioDias?: number
   /** Alertas de boletas impagas en días desde la emisión */
   umbralesBoletas: { primera: number; segunda: number; tercera: number }
   porcentajeRetencion: number

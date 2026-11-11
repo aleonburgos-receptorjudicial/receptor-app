@@ -52,16 +52,17 @@ export async function cargarDatosEjemplo(): Promise<void> {
 
     const retiro = (r: Partial<Retiro> & Pick<Retiro, 'rol' | 'fechaEncargo' | 'fechaVencimiento'>): Retiro => ({
       ...base,
-      tribunal: TRIBUNAL_CURANILAHUE,
+      tribunal: '1er Juzgado Civil de Concepción',
       estado: 'Pendiente',
+      fechaEmision: sumarDias(r.fechaEncargo, -3),
       ...r,
     })
     await db.retiros.bulkAdd([
-      retiro({ rol: 'C-610-2026', clienteId: fuentes, mandante: 'Automotora Ficticia S.A.', deudor: 'Jorge Lagos Pérez', rutDeudor: rutFicticio('15111222'), patente: 'BB·CD·12', marca: 'Chevrolet', modelo: 'Sail', anio: 2019, color: 'Gris', direccion: 'Los Aromos 210, Curanilahue', fechaEncargo: sumarDias(hoy, -40), fechaVencimiento: sumarDias(hoy, -2), estado: 'En búsqueda', fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -20) }),
-      retiro({ rol: 'C-622-2026', clienteId: perez, mandante: 'Banco Ficticio S.A.', deudor: 'Patricia Rivas', patente: 'KL·PR·45', marca: 'Toyota', modelo: 'Yaris', anio: 2021, color: 'Blanco', direccion: 'Pasaje 7 N° 14, Villa Los Ríos', fechaEncargo: sumarDias(hoy, -25), fechaVencimiento: sumarDias(hoy, 5), fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -10), fuerzaPublicaConcedida: true, fechaFuerzaConcedida: sumarDias(hoy, -3) }),
-      retiro({ rol: 'C-640-2026', clienteId: biobio, deudor: 'Hugo Tapia', patente: 'FX·12·34', marca: 'Nissan', modelo: 'V16', anio: 2010, color: 'Rojo', direccion: 'Camino a Plegarias km 4', fechaEncargo: sumarDias(hoy, -10), fechaVencimiento: sumarDias(hoy, 12) }),
-      retiro({ rol: 'C-655-2026', clienteId: fuentes, deudor: 'Andrea Molina', patente: 'GH·JK·78', marca: 'Hyundai', modelo: 'Accent', anio: 2018, color: 'Azul', fechaEncargo: sumarDias(hoy, -5), fechaVencimiento: sumarDias(hoy, 40) }),
-      retiro({ rol: 'C-590-2026', clienteId: perez, deudor: 'Rodrigo Saavedra', patente: 'DR·TS·90', marca: 'Kia', modelo: 'Rio', anio: 2017, color: 'Negro', fechaEncargo: sumarDias(hoy, -60), fechaVencimiento: sumarDias(hoy, -15), estado: 'Retirado', fechaRetiro: sumarDias(hoy, -20), horaRetiro: '10:30', custodio: 'Depósito Municipal de Curanilahue' }),
+      retiro({ rol: 'E-610-2026', clienteId: fuentes, mandante: 'BK', martilleroNombre: 'Martillero de Prueba Uno', martilleroTelefono: '+56 9 3333 4444', martilleroDireccion: 'Barros Arana 100, Concepción', revisionTecnica: 'Planta de revisión de Lebu', permisoCirculacion: 'Municipalidad de Curanilahue', deudor: 'Jorge Lagos Pérez', rutDeudor: rutFicticio('15111222'), patente: 'BB·CD·12', marca: 'Chevrolet', modelo: 'Sail', anio: 2019, color: 'Gris', direccion: 'Los Aromos 210, Curanilahue\nCasa de un familiar en Villa Los Ríos', fechaEncargo: sumarDias(hoy, -40), fechaVencimiento: sumarDias(hoy, -2), estado: 'En búsqueda', fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -20) }),
+      retiro({ rol: 'E-622-2026', tribunal: '2º Juzgado Civil de Concepción', clienteId: perez, mandante: 'FORUM', martilleroNombre: 'Martillera de Prueba Dos', martilleroTelefono: '+56 41 255 6677', deudor: 'Patricia Rivas', patente: 'KL·PR·45', marca: 'Toyota', modelo: 'Yaris', anio: 2021, color: 'Blanco', direccion: 'Pasaje 7 N° 14, Villa Los Ríos', fechaEncargo: sumarDias(hoy, -25), fechaVencimiento: sumarDias(hoy, 5), fuerzaPublicaSolicitada: true, fechaFuerzaSolicitada: sumarDias(hoy, -10), fuerzaPublicaConcedida: true, fechaFuerzaConcedida: sumarDias(hoy, -3) }),
+      retiro({ rol: 'E-640-2026', clienteId: biobio, mandante: 'TANNER', deudor: 'Hugo Tapia', patente: 'FX·12·34', marca: 'Nissan', modelo: 'V16', anio: 2010, color: 'Rojo', direccion: 'Camino a Plegarias km 4', fechaEncargo: sumarDias(hoy, -10), fechaVencimiento: sumarDias(hoy, 12) }),
+      retiro({ rol: 'E-655-2026', clienteId: fuentes, deudor: 'Andrea Molina', patente: 'GH·JK·78', marca: 'Hyundai', modelo: 'Accent', anio: 2018, color: 'Azul', fechaEncargo: sumarDias(hoy, -5), fechaVencimiento: sumarDias(hoy, 40) }),
+      retiro({ rol: 'E-590-2026', mandante: 'BK', clienteId: perez, deudor: 'Rodrigo Saavedra', patente: 'DR·TS·90', marca: 'Kia', modelo: 'Rio', anio: 2017, color: 'Negro', fechaEncargo: sumarDias(hoy, -60), fechaVencimiento: sumarDias(hoy, -15), estado: 'Retirado', fechaRetiro: sumarDias(hoy, -20), horaRetiro: '10:30', lugarRetiro: 'Calle Comercio 455, Curanilahue', custodio: 'Depósito Municipal de Curanilahue' }),
     ])
 
     const retencion = 15.25

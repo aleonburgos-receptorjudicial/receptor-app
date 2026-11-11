@@ -35,17 +35,25 @@ export function validarRetiro(datos: DatosRetiro, campos: CampoRetiro[]): { erro
     direccion: t(datos.direccion),
     custodio: t(datos.custodio),
     horaRetiro: t(datos.horaRetiro),
+    lugarRetiro: t(datos.lugarRetiro),
+    revisionTecnica: t(datos.revisionTecnica),
+    permisoCirculacion: t(datos.permisoCirculacion),
+    martilleroNombre: t(datos.martilleroNombre),
+    martilleroTelefono: t(datos.martilleroTelefono),
+    martilleroDireccion: t(datos.martilleroDireccion),
     observaciones: t(datos.observaciones),
   }
   // Fechas vacías se guardan como "sin fecha"
-  for (const f of ['fechaFuerzaSolicitada', 'fechaFuerzaConcedida', 'fechaRetiro'] as const) limpio[f] = datos[f] || undefined
+  for (const f of ['fechaEmision', 'fechaFuerzaSolicitada', 'fechaFuerzaConcedida', 'fechaRetiro'] as const) limpio[f] = datos[f] || undefined
 
   if (!limpio.rol) errores.rol = 'Escriba el ROL de la causa.'
   if (!limpio.fechaEncargo) errores.fechaEncargo = 'Indique la fecha de encargo.'
   else if (limpio.fechaEncargo > hoyISO()) errores.fechaEncargo = 'La fecha de encargo no puede ser posterior a hoy.'
-  if (!limpio.fechaVencimiento) errores.fechaVencimiento = 'La fecha de vencimiento es obligatoria.'
-  else if (limpio.fechaEncargo && limpio.fechaVencimiento < limpio.fechaEncargo) {
-    errores.fechaVencimiento = 'El vencimiento no puede ser anterior a la fecha de encargo.'
+  if (!limpio.fechaEmision) errores.fechaEmision = 'Indique la fecha de emisión del oficio.'
+  else if (limpio.fechaEmision > hoyISO()) errores.fechaEmision = 'La fecha de emisión no puede ser posterior a hoy.'
+  if (!limpio.fechaVencimiento) errores.fechaVencimiento = 'La fecha de vencimiento del oficio es obligatoria.'
+  else if (limpio.fechaEmision && limpio.fechaVencimiento < limpio.fechaEmision) {
+    errores.fechaVencimiento = 'El vencimiento no puede ser anterior a la emisión del oficio.'
   }
   const rut = revisarRut(datos.rutDeudor)
   if (rut.error) errores.rutDeudor = rut.error
@@ -94,12 +102,13 @@ export async function eliminarRetiro(id: number): Promise<void> {
   await db.retiros.delete(id)
 }
 
-/** Registra que el vehículo fue retirado: fecha, hora y depósito en un solo paso */
-export async function registrarRetiro(id: number, d: { fecha: string; hora?: string; custodio?: string; observaciones?: string }): Promise<void> {
+/** Registra que el vehículo fue retirado: día, hora, lugar y depósito en un solo paso */
+export async function registrarRetiro(id: number, d: { fecha: string; hora?: string; lugar?: string; custodio?: string; observaciones?: string }): Promise<void> {
   await db.retiros.update(id, {
     estado: 'Retirado',
     fechaRetiro: d.fecha,
     horaRetiro: d.hora?.trim() || undefined,
+    lugarRetiro: d.lugar?.trim() || undefined,
     custodio: d.custodio?.trim() || undefined,
     observaciones: d.observaciones?.trim() || undefined,
     actualizado: ahoraISO(),

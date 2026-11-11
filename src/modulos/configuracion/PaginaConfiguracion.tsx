@@ -152,6 +152,26 @@ export function PaginaConfiguracion() {
           <Campo etiqueta="Amarillo desde" type="number" min={1} inputMode="numeric" value={umbRet.amarillo} onChange={(e) => setUmbRet((u) => ({ ...u, amarillo: Number(e.target.value) }))} ayuda="días restantes; menos que eso es naranja" />
         </div>
         {errorRet && <p className="mt-2 font-bold text-rojo" role="alert">{errorRet}</p>}
+        <div className="mt-4 max-w-md">
+          <Campo
+            etiqueta="Vigencia habitual del oficio (días)"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            key={ajustes.vigenciaOficioDias ?? 'sin'}
+            defaultValue={ajustes.vigenciaOficioDias ?? ''}
+            placeholder="Sin vigencia habitual"
+            ayuda="Opcional. Si la indica, al escribir la fecha de emisión se propone sola la fecha de vencimiento (puede cambiarla)."
+            onBlur={(e) => {
+              const n = e.target.value === '' ? undefined : Number(e.target.value)
+              if (n !== undefined && (!Number.isInteger(n) || n < 1)) return setErrorRet('La vigencia debe ser un número entero de días.')
+              if (n !== ajustes.vigenciaOficioDias) {
+                guardarAjustes({ vigenciaOficioDias: n })
+                avisar(n ? `Vigencia habitual: ${n} días` : 'Sin vigencia habitual')
+              }
+            }}
+          />
+        </div>
         <Boton className="mt-4" onClick={guardarUmbRet}>
           Guardar plazos de retiros
         </Boton>

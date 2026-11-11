@@ -6,7 +6,7 @@ import { useAjustes } from '../../db/ajustes'
 import { ESTADOS_RETIRO, type Retiro } from '../../db/tipos'
 import { Boton, EncabezadoPagina, SinDatos } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
-import { IconoBasura, IconoBuscar, IconoEditar, IconoMas } from '../../compartido/Iconos'
+import { IconoBasura, IconoBuscar, IconoEditar, IconoMas, IconoTelefono } from '../../compartido/Iconos'
 import { Ventana } from '../../compartido/Ventana'
 import { fechaCL, hoyISO, plural } from '../../utilidades/formato'
 import { limpiarPatente } from '../../utilidades/patente'
@@ -16,7 +16,7 @@ import { FormularioRetiro } from './FormularioRetiro'
 import { BORDE_NIVEL, EstadoRetiro, EtiquetaVencimiento, NOMBRE_NIVEL, Placa } from './Piezas'
 import { RegistrarRetiro } from './RegistrarRetiro'
 import { eliminarRetiro, valorCampo } from './servicioRetiros'
-import { diasRestantes, nivelVencimiento, retiroActivo, type NivelVencimiento } from './vencimiento'
+import { diasRestantes, nivelVencimiento, retiroActivo, textoVencimiento, type NivelVencimiento } from './vencimiento'
 
 const estiloFiltro = 'min-h-12 w-full rounded-lg border-2 border-borde bg-superficie px-2 focus:border-petroleo focus:outline-none'
 
@@ -54,12 +54,17 @@ export function PaginaRetiros() {
             contiene(r.marca, q) ||
             contiene(r.modelo, q) ||
             contiene(r.clienteId ? nombreCliente.get(r.clienteId) : '', q) ||
+            contiene(r.mandante, q) ||
+            contiene(r.tribunal, q) ||
+            contiene(r.martilleroNombre, q) ||
             (qPat.length >= 3 && !!r.patente && limpiarPatente(r.patente).includes(qPat)) ||
             (qRut.length >= 4 && !!r.rutDeudor && limpiarRut(r.rutDeudor).includes(qRut))
           if (!coincide) return false
         }
         if (estado === 'activos' ? !retiroActivo(r) : estado && r.estado !== estado) return false
-        if (vence && nivelVencimiento(r, ajustes.umbralesRetiros, hoy) !== vence) return false
+        if (vence === 'atencion') {
+          if (!retiroActivo(r) || diasRestantes(r, hoy) > 7) return false
+        } else if (vence && nivelVencimiento(r, ajustes.umbralesRetiros, hoy) !== vence) return false
         if (cliente && String(r.clienteId ?? '') !== cliente) return false
         return true
       })
@@ -78,8 +83,12 @@ export function PaginaRetiros() {
   const activos = datos.retiros.filter(retiroActivo)
   const vencidos = activos.filter((r) => diasRestantes(r, hoy) < 0).length
   const porVencer = activos.filter((r) => diasRestantes(r, hoy) >= 0 && diasRestantes(r, hoy) <= 7).length
+  // Oficios que requieren atención: vencidos o que vencen en los próximos 7 días
+  const urgentes = activos.filter((r) => diasRestantes(r, hoy) <= 7).sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento))
   const hayFiltros = !!busqueda || estado !== 'activos' || !!vence || !!cliente
-  const camposExtra = ajustes.camposRetiro.filter((c) => c.visible && !c.base)
+  // En las tarjetas, "Más datos" muestra los campos propios y estos de fábrica que no tienen lugar fijo
+  const MAS_DATOS = new Set(['revisionTecnica', 'permisoCirculacion', 'observaciones', 'lugarRetiro', 'custodio'])
+  const camposExtra = ajustes.camposRetiro.filter((c) => c.visible && (!c.base || MAS_DATOS.has(c.clave)))
 
   const abrirNuevo = () => {
     setEditando(undefined)
@@ -182,6 +191,45 @@ export function PaginaRetiros() {
         />
       ) : (
         <>
+          {urgentes.length > 0 && (
+            <section className="mb-4 rounded-xl border-2 border-rojo bg-rojo-suave p-4" aria-labelledby="titulo-alerta-oficios">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="titulo-alerta-oficios" className="font-serif text-xl font-bold">
+                  {vencidos ? `${plural(vencidos, 'oficio vencido', 'oficios vencidos')}` : ''}
+                  {vencidos && porVencer ? ' y ' : ''}
+                  {porVencer ? `${plural(porVencer, 'oficio vence', 'oficios vencen')} esta semana` : ''}
+                </h2>
+                <Boton
+                  variante="secundario"
+                  className="min-h-10 py-1 text-sm"
+                  onClick={() => {
+                    setEstado('activos')
+                    setVence('atencion')
+                  }}
+                >
+                  Ver solo estos
+                </Boton>
+              </div>
+              <ul className="mt-3 flex flex-col gap-2">
+                {urgentes.slice(0, 6).map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => abrirEdicion(r)}
+                      className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-superficie px-3 py-2 text-left hover:ring-2 hover:ring-petroleo"
+                    >
+                      <span className={`min-w-36 font-bold ${diasRestantes(r, hoy) < 0 ? 'text-rojo' : 'text-naranja'}`}>{textoVencimiento(diasRestantes(r, hoy))}</span>
+                      <span className="font-serif font-bold cifra">{r.rol}</span>
+                      <span>{r.patente ?? 'Sin patente'}</span>
+                      <span className="text-tenue">{r.deudor ?? ''}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {urgentes.length > 6 && <p className="mt-2 text-tenue">y {plural(urgentes.length - 6, 'otro', 'otros')} más.</p>}
+            </section>
+          )}
+
           <div className="mb-4 flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-4">
             <label className="relative block">
               <span className="sr-only">Buscar retiro</span>
@@ -191,7 +239,7 @@ export function PaginaRetiros() {
               <input
                 type="search"
                 className="min-h-12 w-full rounded-lg border-2 border-borde bg-superficie py-2 pl-11 pr-3 focus:border-petroleo focus:outline-none"
-                placeholder="Buscar por patente, ROL, deudor, RUT o cliente"
+                placeholder="Buscar por patente, ROL, demandado, RUT, mandante o martillero"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />
@@ -211,6 +259,7 @@ export function PaginaRetiros() {
                 Vencimiento
                 <select aria-label="Vencimiento" className={estiloFiltro} value={vence} onChange={(e) => setVence(e.target.value)}>
                   <option value="">Todos</option>
+                  <option value="atencion">Vencidos y por vencer (7 días)</option>
                   {(['vencido', 'naranja', 'amarillo', 'verde'] as NivelVencimiento[]).map((n) => (
                     <option key={n} value={n}>
                       {NOMBRE_NIVEL[n]}
@@ -261,8 +310,8 @@ export function PaginaRetiros() {
                     <tr>
                       <th className="px-3 py-3">Vehículo</th>
                       <th className="px-3 py-3">ROL y cliente</th>
-                      <th className="px-3 py-3">Deudor y dirección</th>
-                      <th className="px-3 py-3">Vencimiento</th>
+                      <th className="px-3 py-3">Demandado y martillero</th>
+                      <th className="px-3 py-3">Oficio</th>
                       <th className="px-3 py-3">Estado</th>
                       <th className="w-36 px-3 py-3">
                         <span className="sr-only">Acciones</span>
@@ -288,22 +337,30 @@ export function PaginaRetiros() {
                           <td className="px-3 py-3">
                             {r.deudor ?? <span className="text-tenue">—</span>}
                             {r.rutDeudor && <span className="block whitespace-nowrap text-sm text-tenue cifra">{r.rutDeudor}</span>}
-                            {r.direccion && <span className="block text-sm text-tenue">{r.direccion}</span>}
+                            {r.martilleroNombre && (
+                              <span className="mt-1 block text-sm">
+                                Martillero: {r.martilleroNombre}
+                                {r.martilleroTelefono && <span className="block whitespace-nowrap text-tenue">{r.martilleroTelefono}</span>}
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap">
-                            <span className="cifra">{fechaCL(r.fechaVencimiento)}</span>
+                            <span className="cifra">Vence {fechaCL(r.fechaVencimiento)}</span>
                             <span className="block">
                               <EtiquetaVencimiento nivel={nivel} dias={diasRestantes(r, hoy)} />
                             </span>
+                            {r.fechaEmision && <span className="block text-sm text-tenue cifra">Emitido {fechaCL(r.fechaEmision)}</span>}
+                            <span className="block max-w-48 whitespace-normal text-sm text-tenue">{r.tribunal}</span>
                           </td>
                           <td className="px-3 py-3">
                             <EstadoRetiro estado={r.estado} />
                             {fuerzaPublica(r) && <span className="mt-1 block text-sm text-tenue">{fuerzaPublica(r)}</span>}
                             {r.estado === 'Retirado' && r.fechaRetiro && (
                               <span className="mt-1 block text-sm text-tenue">
-                                {fechaCL(r.fechaRetiro)}
-                                {r.horaRetiro ? ` ${r.horaRetiro}` : ''}
-                                {r.custodio ? `, ${r.custodio}` : ''}
+                                Retirado {fechaFija(r.fechaRetiro)}
+                                {r.horaRetiro ? ` a las ${r.horaRetiro}` : ''}
+                                {r.lugarRetiro ? `, en ${r.lugarRetiro}` : ''}
+                                {r.custodio ? `. Depósito: ${r.custodio}` : ''}
                               </span>
                             )}
                           </td>
@@ -336,9 +393,23 @@ export function PaginaRetiros() {
                       </div>
                       <p className="mt-2 text-tenue">{vehiculo(r) || 'Sin datos del vehículo'}</p>
                       <p className="mt-2 font-serif text-lg font-bold cifra">ROL {r.rol}</p>
-                      <p className="text-lg font-bold">{r.deudor ?? <span className="font-normal text-tenue">Deudor sin nombre</span>}</p>
-                      {r.direccion && <p>{r.direccion}</p>}
-                      <p className="text-tenue">{r.clienteId ? nombreCliente.get(r.clienteId) : 'Sin cliente'}</p>
+                      <p className="text-lg font-bold">{r.deudor ?? <span className="font-normal text-tenue">Demandado sin nombre</span>}</p>
+                      {r.direccion && <p className="whitespace-pre-line">{r.direccion}</p>}
+                      <p className="text-tenue">
+                        {[r.clienteId ? nombreCliente.get(r.clienteId) : 'Sin cliente', r.mandante].filter(Boolean).join(', ')}
+                      </p>
+                      {r.fechaEmision && <p className="text-sm text-tenue cifra">Oficio emitido {fechaCL(r.fechaEmision)}</p>}
+                      {r.martilleroNombre && (
+                        <div className="mt-2 rounded-lg bg-papel p-2">
+                          <p>Martillero: {r.martilleroNombre}</p>
+                          {r.martilleroTelefono && (
+                            <a href={`tel:${r.martilleroTelefono.replace(/[^\d+]/g, '')}`} className="inline-flex min-h-12 items-center gap-2 font-bold text-petroleo">
+                              <IconoTelefono /> {r.martilleroTelefono}
+                            </a>
+                          )}
+                          {r.martilleroDireccion && <p className="text-sm text-tenue">{r.martilleroDireccion}</p>}
+                        </div>
+                      )}
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-borde pt-3">
                         <EstadoRetiro estado={r.estado} />
                         {fuerzaPublica(r) && <span className="text-sm text-tenue">{fuerzaPublica(r)}</span>}
