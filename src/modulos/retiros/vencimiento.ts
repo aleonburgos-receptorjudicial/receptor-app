@@ -29,6 +29,31 @@ export function nivelVencimiento(r: Retiro, umbrales: Ajustes['umbralesRetiros']
   return 'naranja'
 }
 
+/** Días que lleva el encargo (desde la fecha del encargo hasta hoy) */
+export function diasDesdeEncargo(r: Pick<Retiro, 'fechaEncargo'>, hoy = hoyISO()): number {
+  return Math.max(0, diasEntre(r.fechaEncargo, hoy))
+}
+
+export interface AlertasRetiro {
+  /** El oficio ya venció */
+  vencido: boolean
+  /** El oficio vence pronto: hay que pedir renovación */
+  renovar: boolean
+  /** Pasaron los días configurados desde el encargo: dar prioridad a la búsqueda */
+  prioridad: boolean
+}
+
+/** Alertas de un retiro en curso (los terminados no tienen alertas) */
+export function alertasRetiro(r: Retiro, ajustes: Pick<Ajustes, 'diasPrioridadBusqueda' | 'diasAvisoRenovacion'>, hoy = hoyISO()): AlertasRetiro {
+  if (!retiroActivo(r)) return { vencido: false, renovar: false, prioridad: false }
+  const faltan = diasRestantes(r, hoy)
+  return {
+    vencido: faltan < 0,
+    renovar: faltan >= 0 && faltan <= ajustes.diasAvisoRenovacion,
+    prioridad: diasDesdeEncargo(r, hoy) >= ajustes.diasPrioridadBusqueda,
+  }
+}
+
 /** Retiros en curso que vencen dentro de los próximos "dias" días (sin contar los ya vencidos) */
 export function retirosPorVencer(retiros: Retiro[], dias = 7, hoy = hoyISO()): Retiro[] {
   return retiros.filter((r) => retiroActivo(r) && diasRestantes(r, hoy) >= 0 && diasRestantes(r, hoy) <= dias)

@@ -13,6 +13,7 @@ export class BaseReceptora extends Dexie {
   archivos!: EntityTable<Archivo, 'id'>
 
   constructor() {
+    // Nombre interno de la base de datos: NO cambiarlo, o la app no encontraría los datos ya guardados
     super('receptora-curanilahue')
     // Versión 1 del esquema. Solo se listan los campos por los que se busca u ordena.
     this.version(1).stores({

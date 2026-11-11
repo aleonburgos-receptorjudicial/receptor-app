@@ -25,7 +25,7 @@ export function Estructura() {
       {/* Menú lateral (computador) */}
       <aside className="hidden w-72 shrink-0 flex-col border-r border-borde bg-superficie lg:flex lg:sticky lg:top-0 lg:h-dvh">
         <div className="border-b border-borde px-6 py-6">
-          <p className="font-serif text-2xl font-bold leading-tight text-petroleo">Receptora Judicial</p>
+          <p className="font-serif text-2xl font-bold leading-tight text-petroleo">Receptor Judicial</p>
           <p className="text-tenue">Curanilahue</p>
         </div>
         <nav aria-label="Menú principal" className="flex flex-col gap-1 p-3">

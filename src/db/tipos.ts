@@ -206,6 +206,10 @@ export interface Ajustes {
   umbralesCausas: { reciente: number; media: number; alta: number }
   /** Días restantes para retiros: sobre "verde" es verde, desde "amarillo" amarillo, desde 1 naranja, vencido rojo */
   umbralesRetiros: { verde: number; amarillo: number }
+  /** Días desde el encargo para marcar un retiro con "Prioridad de búsqueda" */
+  diasPrioridadBusqueda: number
+  /** Días antes del vencimiento del oficio para avisar "Pedir renovación" */
+  diasAvisoRenovacion: number
   /** Vigencia habitual del oficio de retiro, en días (para proponer el vencimiento); vacío = no proponer */
   vigenciaOficioDias?: number
   /** Alertas de boletas impagas en días desde la emisión */

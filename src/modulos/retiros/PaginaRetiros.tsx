@@ -8,16 +8,16 @@ import { Boton, EncabezadoPagina, SinDatos } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoBasura, IconoBuscar, IconoEditar, IconoMas, IconoTelefono } from '../../compartido/Iconos'
 import { Ventana } from '../../compartido/Ventana'
-import { diasEntre, fechaCL, hoyISO, plural } from '../../utilidades/formato'
+import { fechaCL, hoyISO, plural } from '../../utilidades/formato'
 import { limpiarPatente } from '../../utilidades/patente'
 import { limpiarRut } from '../../utilidades/rut'
 import { contiene } from '../../utilidades/texto'
 import { FormularioRetiro } from './FormularioRetiro'
-import { BORDE_NIVEL, EstadoRetiro, EtiquetaVencimiento, NOMBRE_NIVEL, Placa } from './Piezas'
+import { BORDE_NIVEL, EstadoRetiro, EtiquetasAlerta, EtiquetaVencimiento, NOMBRE_NIVEL, Placa } from './Piezas'
 import { RegistrarRetiro } from './RegistrarRetiro'
 import { abrirArchivo } from './servicioArchivos'
 import { eliminarRetiro, valorCampo } from './servicioRetiros'
-import { diasRestantes, nivelVencimiento, retiroActivo, textoVencimiento, type NivelVencimiento } from './vencimiento'
+import { alertasRetiro, diasDesdeEncargo, diasRestantes, nivelVencimiento, retiroActivo, textoVencimiento, type NivelVencimiento } from './vencimiento'
 
 const estiloFiltro = 'min-h-12 w-full rounded-lg border-2 border-borde bg-superficie px-2 focus:border-petroleo focus:outline-none'
 
@@ -67,8 +67,8 @@ export function PaginaRetiros() {
           if (!coincide) return false
         }
         if (estado === 'activos' ? !retiroActivo(r) : estado && r.estado !== estado) return false
-        if (vence === 'atencion') {
-          if (!retiroActivo(r) || diasRestantes(r, hoy) > 7) return false
+        if (vence === 'renovar' || vence === 'prioridad') {
+          if (!alertasRetiro(r, ajustes, hoy)[vence]) return false
         } else if (vence && nivelVencimiento(r, ajustes.umbralesRetiros, hoy) !== vence) return false
         if (cliente && String(r.clienteId ?? '') !== cliente) return false
         return true
@@ -80,16 +80,22 @@ export function PaginaRetiros() {
         if (aa !== bb) return aa - bb
         return aa === 0 ? a.fechaVencimiento.localeCompare(b.fechaVencimiento) : b.fechaEncargo.localeCompare(a.fechaEncargo)
       })
-  }, [datos, busqueda, estado, vence, cliente, ajustes.umbralesRetiros, hoy, nombreCliente])
+  }, [datos, busqueda, estado, vence, cliente, ajustes, hoy, nombreCliente])
 
   if (!datos) return <p className="text-tenue">Cargando…</p>
 
   const total = datos.retiros.length
   const activos = datos.retiros.filter(retiroActivo)
-  const vencidos = activos.filter((r) => diasRestantes(r, hoy) < 0).length
-  const porVencer = activos.filter((r) => diasRestantes(r, hoy) >= 0 && diasRestantes(r, hoy) <= 7).length
-  // Oficios que requieren atención: vencidos o que vencen en los próximos 7 días
-  const urgentes = activos.filter((r) => diasRestantes(r, hoy) <= 7).sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento))
+  // Avisos: oficios vencidos, oficios por vencer (pedir renovación) y encargos con prioridad de búsqueda
+  const conAlertas = activos.map((r) => ({ r, a: alertasRetiro(r, ajustes, hoy) })).sort((x, y) => x.r.fechaVencimiento.localeCompare(y.r.fechaVencimiento))
+  const listaVencidos = conAlertas.filter((x) => x.a.vencido).map((x) => x.r)
+  const listaRenovar = conAlertas.filter((x) => x.a.renovar).map((x) => x.r)
+  const listaPrioridad = conAlertas
+    .filter((x) => x.a.prioridad)
+    .map((x) => x.r)
+    .sort((a, b) => a.fechaEncargo.localeCompare(b.fechaEncargo))
+  const vencidos = listaVencidos.length
+  const porVencer = listaRenovar.length
   const hayFiltros = !!busqueda || estado !== 'activos' || !!vence || !!cliente
   // En las tarjetas, "Más datos" muestra los campos propios y estos de fábrica que no tienen lugar fijo
   const MAS_DATOS = new Set(['revisionTecnica', 'permisoCirculacion', 'observaciones', 'lugarRetiro', 'custodio'])
@@ -175,7 +181,7 @@ export function PaginaRetiros() {
   // Fechas con guion que no se corta al final de la línea
   const fechaFija = (iso?: string) => (iso ? ` ${fechaCL(iso).replace(/-/g, '\u2011')}` : '')
   const fuerzaPublica = (r: Retiro) => (r.fuerzaPublicaConcedida ? 'Fuerza pública concedida' : r.fuerzaPublicaSolicitada ? 'Fuerza pública solicitada' : null)
-  const diasEncargo = (r: Retiro) => Math.max(0, diasEntre(r.fechaEncargo, hoy))
+  const diasEncargo = (r: Retiro) => diasDesdeEncargo(r, hoy)
 
   return (
     <div>
@@ -183,7 +189,7 @@ export function PaginaRetiros() {
         titulo="Retiros de vehículos"
         descripcion={
           total
-            ? `${plural(activos.length, 'retiro en curso', 'retiros en curso')}${vencidos ? `, ${plural(vencidos, 'vencido', 'vencidos')}` : ''}${porVencer ? `, ${plural(porVencer, 'vence', 'vencen')} en los próximos 7 días` : ''}.`
+            ? `${plural(activos.length, 'retiro en curso', 'retiros en curso')}${vencidos ? `, ${plural(vencidos, 'vencido', 'vencidos')}` : ''}${porVencer ? `, ${plural(porVencer, 'vence', 'vencen')} en los próximos ${ajustes.diasAvisoRenovacion} días` : ''}${listaPrioridad.length ? `, ${plural(listaPrioridad.length, 'con prioridad', 'con prioridad')} de búsqueda` : ''}.`
             : 'Encargos de retiro de vehículos, con su fecha de vencimiento.'
         }
         acciones={
@@ -212,43 +218,78 @@ export function PaginaRetiros() {
         />
       ) : (
         <>
-          {urgentes.length > 0 && (
-            <section className="mb-4 rounded-xl border-2 border-rojo bg-rojo-suave p-4" aria-labelledby="titulo-alerta-oficios">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="titulo-alerta-oficios" className="font-serif text-xl font-bold">
-                  {vencidos ? `${plural(vencidos, 'oficio vencido', 'oficios vencidos')}` : ''}
-                  {vencidos && porVencer ? ' y ' : ''}
-                  {porVencer ? `${plural(porVencer, 'oficio vence', 'oficios vencen')} esta semana` : ''}
-                </h2>
-                <Boton
-                  variante="secundario"
-                  className="min-h-10 py-1 text-sm"
-                  onClick={() => {
-                    setEstado('activos')
-                    setVence('atencion')
-                  }}
-                >
-                  Ver solo estos
-                </Boton>
-              </div>
-              <ul className="mt-3 flex flex-col gap-2">
-                {urgentes.slice(0, 6).map((r) => (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      onClick={() => abrirEdicion(r)}
-                      className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-superficie px-3 py-2 text-left hover:ring-2 hover:ring-petroleo"
-                    >
-                      <span className={`min-w-36 font-bold ${diasRestantes(r, hoy) < 0 ? 'text-rojo' : 'text-naranja'}`}>{textoVencimiento(diasRestantes(r, hoy))}</span>
-                      <span className="font-serif font-bold cifra">{r.rol}</span>
-                      <span>{r.patente ?? 'Sin patente'}</span>
-                      <span className="text-tenue">{r.deudor ?? ''}</span>
-                    </button>
-                  </li>
+          {(vencidos > 0 || porVencer > 0 || listaPrioridad.length > 0) && (
+            <div className="mb-4 grid items-start gap-3 xl:grid-cols-3">
+              {(
+                [
+                  {
+                    clave: 'vencido',
+                    lista: listaVencidos,
+                    titulo: plural(vencidos, 'oficio vencido', 'oficios vencidos'),
+                    texto: 'El oficio ya venció. Revise si corresponde pedir uno nuevo.',
+                    estilo: 'border-rojo bg-rojo-suave',
+                    detalle: (r: Retiro) => textoVencimiento(diasRestantes(r, hoy)),
+                    color: 'text-rojo',
+                  },
+                  {
+                    clave: 'renovar',
+                    lista: listaRenovar,
+                    titulo: `Pedir renovación: ${plural(porVencer, 'oficio vence', 'oficios vencen')} pronto`,
+                    texto: `Oficios que vencen en ${ajustes.diasAvisoRenovacion} días o menos.`,
+                    estilo: 'border-naranja bg-naranja-suave',
+                    detalle: (r: Retiro) => textoVencimiento(diasRestantes(r, hoy)),
+                    color: 'text-naranja',
+                  },
+                  {
+                    clave: 'prioridad',
+                    lista: listaPrioridad,
+                    titulo: `Prioridad de búsqueda: ${plural(listaPrioridad.length, 'retiro', 'retiros')}`,
+                    texto: `Pasaron ${ajustes.diasPrioridadBusqueda} días o más desde el encargo y el vehículo no se ha retirado.`,
+                    estilo: 'border-amarillo bg-amarillo-suave',
+                    detalle: (r: Retiro) => `Encargo hace ${plural(diasDesdeEncargo(r, hoy), 'día', 'días')}`,
+                    color: 'text-amarillo',
+                  },
+                ] as const
+              )
+                .filter((g) => g.lista.length > 0)
+                .map((g) => (
+                  <section key={g.clave} className={`rounded-xl border-2 p-4 ${g.estilo}`} aria-label={g.titulo}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <h2 className="font-serif text-lg font-bold">{g.titulo}</h2>
+                        <p className="text-sm">{g.texto}</p>
+                      </div>
+                      <Boton
+                        variante="secundario"
+                        className="min-h-10 py-1 text-sm"
+                        onClick={() => {
+                          setEstado('activos')
+                          setVence(g.clave)
+                        }}
+                      >
+                        Ver solo estos
+                      </Boton>
+                    </div>
+                    <ul className="mt-3 flex flex-col gap-2">
+                      {g.lista.slice(0, 5).map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            onClick={() => abrirEdicion(r)}
+                            className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-lg bg-superficie px-3 py-2 text-left hover:ring-2 hover:ring-petroleo"
+                          >
+                            <span className={`w-full font-bold ${g.color}`}>{g.detalle(r)}</span>
+                            <span className="font-serif font-bold cifra">{r.rol}</span>
+                            <span>{r.patente ?? 'Sin patente'}</span>
+                            <span className="text-tenue">{r.deudor ?? ''}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {g.lista.length > 5 && <p className="mt-2 text-sm">y {plural(g.lista.length - 5, 'otro', 'otros')} más.</p>}
+                  </section>
                 ))}
-              </ul>
-              {urgentes.length > 6 && <p className="mt-2 text-tenue">y {plural(urgentes.length - 6, 'otro', 'otros')} más.</p>}
-            </section>
+            </div>
           )}
 
           <div className="mb-4 flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-4">
@@ -280,7 +321,8 @@ export function PaginaRetiros() {
                 Vencimiento
                 <select aria-label="Vencimiento" className={estiloFiltro} value={vence} onChange={(e) => setVence(e.target.value)}>
                   <option value="">Todos</option>
-                  <option value="atencion">Vencidos y por vencer (7 días)</option>
+                  <option value="renovar">Pedir renovación (vence en {ajustes.diasAvisoRenovacion} días o menos)</option>
+                  <option value="prioridad">Prioridad de búsqueda ({ajustes.diasPrioridadBusqueda} días o más desde el encargo)</option>
                   {(['vencido', 'naranja', 'amarillo', 'verde'] as NivelVencimiento[]).map((n) => (
                     <option key={n} value={n}>
                       {NOMBRE_NIVEL[n]}
@@ -378,7 +420,10 @@ export function PaginaRetiros() {
                             <span className="block max-w-48 whitespace-normal text-sm text-tenue">{r.tribunal}</span>
                           </td>
                           <td className="px-3 py-3">
-                            <EstadoRetiro estado={r.estado} />
+                            <span className="flex flex-col items-start gap-1">
+                              <EstadoRetiro estado={r.estado} />
+                              <EtiquetasAlerta alertas={alertasRetiro(r, ajustes, hoy)} />
+                            </span>
                             {fuerzaPublica(r) && <span className="mt-1 block text-sm text-tenue">{fuerzaPublica(r)}</span>}
                             {r.estado === 'Retirado' && r.fechaRetiro && (
                               <span className="mt-1 block text-sm text-tenue">
@@ -439,6 +484,7 @@ export function PaginaRetiros() {
                       )}
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-borde pt-3">
                         <EstadoRetiro estado={r.estado} />
+                        <EtiquetasAlerta alertas={alertasRetiro(r, ajustes, hoy)} />
                         {fuerzaPublica(r) && <span className="text-sm text-tenue">{fuerzaPublica(r)}</span>}
                       </div>
                       {(conExtras.length > 0 || (r.familiares?.length ?? 0) > 0) && (

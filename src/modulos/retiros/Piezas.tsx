@@ -1,7 +1,7 @@
 // Piezas visuales de los retiros: la placa patente, la etiqueta de vencimiento y el estado.
 import type { Retiro } from '../../db/tipos'
 import type { NivelVencimiento } from './vencimiento'
-import { textoVencimiento } from './vencimiento'
+import { textoVencimiento, type AlertasRetiro } from './vencimiento'
 
 /** Patente dibujada como placa chilena: fondo blanco, borde oscuro y "CHILE" abajo */
 export function Placa({ patente, grande = false }: { patente?: string; grande?: boolean }) {
@@ -49,4 +49,16 @@ const COLOR_ESTADO: Record<Retiro['estado'], string> = {
 
 export function EstadoRetiro({ estado }: { estado: Retiro['estado'] }) {
   return <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-sm font-bold ${COLOR_ESTADO[estado]}`}>{estado}</span>
+}
+
+/** Etiquetas de alerta: oficio vencido, pedir renovación y prioridad de búsqueda */
+export function EtiquetasAlerta({ alertas }: { alertas: AlertasRetiro }) {
+  if (!alertas.vencido && !alertas.renovar && !alertas.prioridad) return null
+  return (
+    <span className="flex flex-wrap gap-1">
+      {alertas.vencido && <span className="whitespace-nowrap rounded-md bg-rojo px-2 py-0.5 text-sm font-bold text-papel">Oficio vencido</span>}
+      {alertas.renovar && <span className="whitespace-nowrap rounded-md border border-naranja bg-naranja-suave px-2 py-0.5 text-sm font-bold text-naranja">Pedir renovación</span>}
+      {alertas.prioridad && <span className="whitespace-nowrap rounded-md border border-amarillo bg-amarillo-suave px-2 py-0.5 text-sm font-bold text-amarillo">Prioridad de búsqueda</span>}
+    </span>
+  )
 }

@@ -1,4 +1,4 @@
-# Receptora Judicial · Curanilahue
+# Receptor Judicial
 
 Aplicación para organizar el trabajo diario de una receptora judicial: causas civiles y exhortos,
 retiros de vehículos, boletas de honorarios y clientes (estudios jurídicos).

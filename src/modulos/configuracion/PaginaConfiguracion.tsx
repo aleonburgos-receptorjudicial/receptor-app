@@ -143,7 +143,7 @@ export function PaginaConfiguracion() {
         </div>
       </Seccion>
 
-      <Seccion titulo="Retiros de vehículos: colores según los días que faltan">
+      <Seccion titulo="Retiros de vehículos: colores y avisos">
         <p className="mb-4 max-w-[65ch] text-tenue">
           Verde: faltan más de {umbRet.verde || '…'} días. Amarillo: de {umbRet.amarillo || '…'} a {umbRet.verde || '…'} días. Naranja: de 0 a {(umbRet.amarillo || 1) - 1} días. Rojo: vencido.
         </p>
@@ -152,6 +152,42 @@ export function PaginaConfiguracion() {
           <Campo etiqueta="Amarillo desde" type="number" min={1} inputMode="numeric" value={umbRet.amarillo} onChange={(e) => setUmbRet((u) => ({ ...u, amarillo: Number(e.target.value) }))} ayuda="días restantes; menos que eso es naranja" />
         </div>
         {errorRet && <p className="mt-2 font-bold text-rojo" role="alert">{errorRet}</p>}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Campo
+            etiqueta="Prioridad de búsqueda desde"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            key={`p${ajustes.diasPrioridadBusqueda}`}
+            defaultValue={ajustes.diasPrioridadBusqueda}
+            ayuda="días desde el encargo sin retirar el vehículo"
+            onBlur={(e) => {
+              const n = Number(e.target.value)
+              if (!Number.isInteger(n) || n < 1) return setErrorRet('Los días de prioridad deben ser un número entero mayor que cero.')
+              if (n !== ajustes.diasPrioridadBusqueda) {
+                guardarAjustes({ diasPrioridadBusqueda: n })
+                avisar(`Prioridad de búsqueda desde los ${n} días`)
+              }
+            }}
+          />
+          <Campo
+            etiqueta="Avisar «Pedir renovación» cuando falten"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            key={`r${ajustes.diasAvisoRenovacion}`}
+            defaultValue={ajustes.diasAvisoRenovacion}
+            ayuda="días o menos para el vencimiento del oficio"
+            onBlur={(e) => {
+              const n = Number(e.target.value)
+              if (!Number.isInteger(n) || n < 1) return setErrorRet('Los días de aviso deben ser un número entero mayor que cero.')
+              if (n !== ajustes.diasAvisoRenovacion) {
+                guardarAjustes({ diasAvisoRenovacion: n })
+                avisar(`Aviso de renovación: ${n} días antes`)
+              }
+            }}
+          />
+        </div>
         <div className="mt-4 max-w-md">
           <Campo
             etiqueta="Vigencia habitual del oficio (días)"

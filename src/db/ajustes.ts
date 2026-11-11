@@ -41,6 +41,8 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
   tribunalPorDefecto: TRIBUNAL_CURANILAHUE,
   umbralesCausas: { reciente: 30, media: 45, alta: 60 },
   umbralesRetiros: { verde: 15, amarillo: 8 },
+  diasPrioridadBusqueda: 10,
+  diasAvisoRenovacion: 7,
   umbralesBoletas: { primera: 30, segunda: 60, tercera: 90 },
   // Tasa de retención de boletas de honorarios vigente en 2026 (Ley 21.133)
   porcentajeRetencion: 15.25,
