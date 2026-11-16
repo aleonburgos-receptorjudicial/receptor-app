@@ -238,6 +238,8 @@ export interface Ajustes {
   firmaCobro: string
   /** Ruta del día: diligencias elegidas, en el orden en que se visitarán */
   rutaDelDia?: { fecha: string; causaIds: number[] }
+  /** Ciudad que aparece bajo el título «Receptor Judicial» en el menú (puede quedar vacía) */
+  ciudadTitulo: string
   /** Comuna que se agrega a las direcciones sin comuna al abrir Maps o Waze */
   comunaNavegacion: string
   /** Línea bajo el título de la hoja de ruta (nombre, cargo y comuna) */

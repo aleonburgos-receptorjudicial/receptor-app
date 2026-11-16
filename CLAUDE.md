@@ -1,6 +1,6 @@
 # Aplicaciones de la Receptora Judicial – Reglas del proyecto
 
-Nombre visible de la app: **Receptor Judicial** (pestaña, menú y PWA). El nombre interno de la base de datos (`receptora-curanilahue`) NO se cambia.
+Nombre visible de la app: **Receptor Judicial** (pestaña, menú y PWA). La ciudad bajo el título del menú se edita en Configuración → Apariencia (`ajustes.ciudadTitulo`, «Curanilahue» por defecto, puede quedar vacía). El nombre interno de la base de datos (`receptora-curanilahue`) NO se cambia.
 
 Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 

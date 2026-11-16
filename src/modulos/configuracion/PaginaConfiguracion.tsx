@@ -99,6 +99,21 @@ export function PaginaConfiguracion() {
       <SeccionInstalar />
 
       <Seccion titulo="Apariencia">
+        <div className="mb-6 max-w-xl">
+          <Campo
+            etiqueta="Ciudad bajo el título «Receptor Judicial»"
+            key={`ciu${ajustes.ciudadTitulo}`}
+            defaultValue={ajustes.ciudadTitulo}
+            ayuda="Aparece en el menú, debajo del nombre de la app. Puede dejarla en blanco."
+            onBlur={(e) => {
+              const v = e.target.value.trim()
+              if (v !== ajustes.ciudadTitulo) {
+                guardarAjustes({ ciudadTitulo: v })
+                avisar(v ? `Ciudad cambiada a ${v}` : 'Se quitó la ciudad del título')
+              }
+            }}
+          />
+        </div>
         <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4">
           <span className="flex items-center gap-3 text-lg">
             <IconoLuna />

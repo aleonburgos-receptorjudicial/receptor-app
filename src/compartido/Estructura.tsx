@@ -1,6 +1,9 @@
 // Estructura general: menú lateral en el computador y barra inferior en el celular.
 import { NavLink, Outlet } from 'react-router-dom'
 import type { ComponentType, SVGProps } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/basedatos'
+import { AJUSTES_POR_DEFECTO } from '../db/ajustes'
 import { IconoAjustes, IconoBoleta, IconoCausas, IconoClientes, IconoInicio, IconoVehiculo } from './Iconos'
 
 interface ItemMenu {
@@ -20,13 +23,15 @@ export const MENU: ItemMenu[] = [
 ]
 
 export function Estructura() {
+  // Se espera a leer los ajustes para no mostrar un instante la ciudad de fábrica
+  const ciudadTitulo = useLiveQuery(async () => (await db.ajustes.get('general'))?.valor.ciudadTitulo ?? AJUSTES_POR_DEFECTO.ciudadTitulo, [])
   return (
     <div className="min-h-dvh lg:flex">
       {/* Menú lateral (computador) */}
       <aside className="hidden w-72 shrink-0 flex-col border-r border-borde bg-superficie lg:flex lg:sticky lg:top-0 lg:h-dvh">
         <div className="border-b border-borde px-6 py-6">
           <p className="font-serif text-2xl font-bold leading-tight text-petroleo">Receptor Judicial</p>
-          <p className="text-tenue">Curanilahue</p>
+          {ciudadTitulo && <p className="text-tenue">{ciudadTitulo}</p>}
         </div>
         <nav aria-label="Menú principal" className="flex flex-col gap-1 p-3">
           {MENU.map(({ ruta, texto, Icono }) => (
