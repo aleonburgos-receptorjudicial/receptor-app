@@ -349,6 +349,7 @@ export function PaginaConfiguracion() {
         {conEjemplo && <p className="mt-3 font-bold text-petroleo">Hay datos de ejemplo cargados.</p>}
       </Seccion>
 
+      <p className="text-center text-tenue">Versión de la app: {__VERSION_APP__}</p>
     </div>
   )
 }

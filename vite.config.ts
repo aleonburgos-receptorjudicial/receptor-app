@@ -7,8 +7,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 const vistaPrevia = process.env.VITE_ENRUTADOR === 'memoria'
 
 // Configuración de Vite. "base: './'" permite publicar la app en cualquier carpeta (por ejemplo, GitHub Pages).
+// Fecha y hora de la compilación (hora de Chile), para mostrar la versión en Configuración
+const version = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+  .format(new Date())
+  .replace(/\//g, '-')
+  .replace(',', '')
+
 export default defineConfig({
   base: './',
+  define: { __VERSION_APP__: JSON.stringify(version) },
   // En la vista previa el registro de la PWA se cambia por uno vacío
   resolve: vistaPrevia ? { alias: { 'virtual:pwa-register': '/src/pwa/sinPwa.ts' } } : undefined,
   plugins: [
