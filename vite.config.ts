@@ -9,6 +9,8 @@ const vistaPrevia = process.env.VITE_ENRUTADOR === 'memoria'
 // Configuración de Vite. "base: './'" permite publicar la app en cualquier carpeta (por ejemplo, GitHub Pages).
 export default defineConfig({
   base: './',
+  // En la vista previa el registro de la PWA se cambia por uno vacío
+  resolve: vistaPrevia ? { alias: { 'virtual:pwa-register': '/src/pwa/sinPwa.ts' } } : undefined,
   plugins: [
     react(),
     tailwindcss(),
@@ -16,7 +18,8 @@ export default defineConfig({
       VitePWA({
         // La app se actualiza sola cuando hay una versión nueva
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+        injectRegister: false,
+        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo.png'],
         manifest: {
           name: 'Receptor Judicial',
           short_name: 'Receptor',

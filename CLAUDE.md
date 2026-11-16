@@ -87,6 +87,8 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - PWA con vite-plugin-pwa (autoUpdate, funciona sin internet). Se desactiva en la vista previa (`VITE_ENRUTADOR=memoria`). Se pide almacenamiento persistente al iniciar.
 - Publicación: `bash scripts/publicar.sh` sube `dist/` a la rama `gh-pages` (GitHub Pages: https://aleonburgos-receptorjudicial.github.io/receptor-app/). Publicar requiere la autorización explícita de Mercedes.
 - Cada equipo (computador, celular) guarda sus propios datos: para pasarlos de uno a otro se usa el respaldo.
+- Logo de Mercedes (balanza con circuitos): `public/logo.png` (fondo transparente) sobre un recuadro blanco en el menú lateral y en el encabezado del celular; íconos de la PWA, apple-touch-icon y `favicon.png` generados desde él con fondo blanco.
+- Actualización: `src/pwa/actualizar.ts` registra el service worker con `virtual:pwa-register` (autoUpdate): al abrir la app, si hay versión nueva, se recarga sola una vez. En la vista previa se usa `src/pwa/sinPwa.ts`.
 
 ## Decisiones: antecedentes (la app aprende de las observaciones)
 - `src/modulos/antecedentes/`: se calculan al vuelo desde las causas (no hay tabla nueva). Cada causa Realizada/Suspendida/Devuelta con observaciones o resultado deja un antecedente para su domicilio.

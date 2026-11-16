@@ -29,9 +29,12 @@ export function Estructura() {
     <div className="min-h-dvh lg:flex">
       {/* Menú lateral (computador) */}
       <aside className="hidden w-72 shrink-0 flex-col border-r border-borde bg-superficie lg:flex lg:sticky lg:top-0 lg:h-dvh">
-        <div className="border-b border-borde px-6 py-6">
-          <p className="font-serif text-2xl font-bold leading-tight text-petroleo">Receptor Judicial</p>
-          {ciudadTitulo && <p className="text-tenue">{ciudadTitulo}</p>}
+        <div className="flex items-center gap-3 border-b border-borde px-5 py-5">
+          <Logo className="h-14 w-14" />
+          <div className="min-w-0">
+            <p className="whitespace-nowrap font-serif text-xl font-bold leading-tight text-petroleo">Receptor Judicial</p>
+            {ciudadTitulo && <p className="text-tenue">{ciudadTitulo}</p>}
+          </div>
         </div>
         <nav aria-label="Menú principal" className="flex flex-col gap-1 p-3">
           {MENU.map(({ ruta, texto, Icono }) => (
@@ -51,6 +54,15 @@ export function Estructura() {
           ))}
         </nav>
       </aside>
+
+      {/* Encabezado (celular y tablet) */}
+      <header className="flex items-center gap-3 border-b border-borde bg-superficie px-4 py-2 lg:hidden">
+        <Logo className="h-10 w-10" />
+        <div className="min-w-0 leading-tight">
+          <p className="font-serif text-lg font-bold text-petroleo">Receptor Judicial</p>
+          {ciudadTitulo && <p className="truncate text-sm text-tenue">{ciudadTitulo}</p>}
+        </div>
+      </header>
 
       {/* Contenido */}
       <main className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-28 pt-6 md:px-8 lg:pb-10 lg:pt-10">
@@ -85,6 +97,15 @@ export function Estructura() {
         ))}
       </nav>
     </div>
+  )
+}
+
+/** Logo de la app sobre un fondo blanco (así se ve bien también en modo oscuro) */
+function Logo({ className = '' }: { className?: string }) {
+  return (
+    <span className={`flex shrink-0 items-center justify-center rounded-xl bg-white p-1 ${className}`}>
+      <img src="./logo.png" alt="" className="h-full w-full object-contain" />
+    </span>
   )
 }
 
