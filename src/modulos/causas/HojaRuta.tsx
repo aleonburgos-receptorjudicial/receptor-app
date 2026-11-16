@@ -10,6 +10,8 @@ import { Ventana } from '../../compartido/Ventana'
 import { fechaCL, hoyISO, plural } from '../../utilidades/formato'
 import { normalizar } from '../../utilidades/texto'
 import { EtiquetaPrioridad, MarcaUrgente } from './Etiquetas'
+import { antecedentesDomicilio, textoCorto } from '../antecedentes/antecedentes'
+import { EtiquetaAntecedente, useAntecedentes } from '../antecedentes/Antecedentes'
 import { diasDesdeEncargo, prioridadCausa } from './prioridad'
 
 const SIN_SECTOR = 'Sin sector'
@@ -67,6 +69,8 @@ export function HojaRuta({
   const [fecha, setFecha] = useState(hoyISO())
   const [elegidas, setElegidas] = useState<number[]>([])
   const [generando, setGenerando] = useState(false)
+  const todosAntecedentes = useAntecedentes()
+  const antecedenteDe = (c: Causa) => antecedentesDomicilio(todosAntecedentes, c.domicilio, c.id)
   const navegar = useNavigate()
   // Al abrir, si hay una ruta del día armada, se parte con esas diligencias marcadas
   useEffect(() => {
@@ -109,7 +113,7 @@ export function HojaRuta({
       // El generador de PDF se carga solo cuando se usa
       const { generarHojaRuta } = await import('./hojaRutaPdf')
       const pdf = await generarHojaRuta(
-        ordenadas.map((c) => ({ causa: c, solicitante: c.clienteId ? cliente.get(c.clienteId) : c.mandante })),
+        ordenadas.map((c) => ({ causa: c, solicitante: c.clienteId ? cliente.get(c.clienteId) : c.mandante, antecedente: textoCorto(antecedenteDe(c)) ?? undefined })),
         fecha,
         ajustes.encabezadoHojaRuta,
       )
@@ -218,6 +222,11 @@ export function HojaRuta({
                               {c.urgente && <MarcaUrgente />}
                               <EtiquetaPrioridad nivel={prioridadCausa(c, ajustes.umbralesCausas, hoy)} dias={diasDesdeEncargo(c, hoy)} />
                             </span>
+                            {antecedenteDe(c).length > 0 && (
+                              <span className="mt-1 block">
+                                <EtiquetaAntecedente lista={antecedenteDe(c)} />
+                              </span>
+                            )}
                             <span className="block">{c.domicilio ?? <span className="text-tenue">Sin domicilio registrado</span>}</span>
                             <span className="block text-tenue">
                               {[c.tipoDiligencia ?? 'Diligencia', c.demandado ?? 'Demandado sin nombre', c.clienteId ? cliente.get(c.clienteId) : ''].filter(Boolean).join(', ')}

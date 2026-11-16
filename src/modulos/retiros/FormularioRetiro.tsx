@@ -14,6 +14,8 @@ import { normalizar } from '../../utilidades/texto'
 import { formatearPatente, patenteValida } from '../../utilidades/patente'
 import { FormularioCliente } from '../clientes/FormularioCliente'
 import { AdjuntosRetiro, type PdfParaLeer } from './AdjuntosRetiro'
+import { antecedentesDomicilio } from '../antecedentes/antecedentes'
+import { EtiquetaAntecedente, useAntecedentes } from '../antecedentes/Antecedentes'
 import { lineaDomicilio, ResumenInforme, type SeleccionInforme } from './informe/ResumenInforme'
 import { Familiares } from './Familiares'
 import { Placa } from './Piezas'
@@ -41,6 +43,7 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
   const [nuevoCliente, setNuevoCliente] = useState(false)
   const [pdfsPendientes, setPdfsPendientes] = useState<File[]>([])
   const [leyendo, setLeyendo] = useState<PdfParaLeer | null>(null)
+  const todosAntecedentes = useAntecedentes()
   const clientes = useLiveQuery(() => db.clientes.orderBy('nombre').toArray(), []) ?? []
   // Tribunales y mandantes ya usados, para sugerirlos
   const usados = useLiveQuery(async () => {
@@ -195,8 +198,26 @@ export function FormularioRetiro({ abierta, retiro, alCerrar }: { abierta: boole
         return <CampoConLista {...comun} opciones={usados.tribunales} value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="Ej.: 1er Juzgado Civil de Concepción" />
       case 'mandante':
         return <CampoConLista {...comun} opciones={usados.mandantes} value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="Ej.: BK, FORUM, TANNER" />
-      case 'direccion':
-        return <AreaTexto {...comun} value={texto} onChange={(e) => poner(c, e.target.value)} rows={3} placeholder="Un domicilio por línea, el más probable primero" />
+      case 'direccion': {
+        // Antecedentes de cada domicilio escrito (lo aprendido de diligencias anteriores)
+        const conAntecedente = texto
+          .split('\n')
+          .map((l) => l.split('(')[0].trim())
+          .filter(Boolean)
+          .map((l) => ({ l, lista: antecedentesDomicilio(todosAntecedentes, l) }))
+          .filter((x) => x.lista.length)
+        return (
+          <div className="flex flex-col gap-2">
+            <AreaTexto {...comun} value={texto} onChange={(e) => poner(c, e.target.value)} rows={3} placeholder="Un domicilio por línea, el más probable primero" />
+            {conAntecedente.map((x) => (
+              <p key={x.l} className="text-sm">
+                <span className="text-tenue">{x.l}: </span>
+                <EtiquetaAntecedente lista={x.lista} />
+              </p>
+            ))}
+          </div>
+        )
+      }
       case 'martilleroTelefono':
         return <Campo {...comun} type="tel" inputMode="tel" value={texto} onChange={(e) => poner(c, e.target.value)} placeholder="+56 9 1234 5678" />
     }

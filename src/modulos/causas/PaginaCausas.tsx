@@ -19,6 +19,8 @@ import { MarcarRealizada } from './MarcarRealizada'
 import { diasDesdeEncargo, prioridadCausa, type NivelPrioridad } from './prioridad'
 import { ResumenPorCliente } from './ResumenPorCliente'
 import { eliminarCausa } from './servicioCausas'
+import { antecedentesDomicilio, construirAntecedentes, resumenAntecedentes, type Antecedente } from '../antecedentes/antecedentes'
+import { EtiquetaAntecedente } from '../antecedentes/Antecedentes'
 
 interface Filtros {
   estado: string
@@ -28,9 +30,11 @@ interface Filtros {
   prioridad: string
   desde: string
   hasta: string
+  /** 'negativo': solo causas pendientes en domicilios con antecedentes negativos */
+  antecedente: string
 }
 
-const SIN_FILTROS: Filtros = { estado: '', tipoCausa: '', diligencia: '', cliente: '', prioridad: '', desde: '', hasta: '' }
+const SIN_FILTROS: Filtros = { estado: '', tipoCausa: '', diligencia: '', cliente: '', prioridad: '', desde: '', hasta: '', antecedente: '' }
 const PASO = 100
 
 // La herramienta de Excel es pesada: se carga solo cuando se importa o exporta
@@ -69,7 +73,8 @@ export function PaginaCausas() {
   useEffect(() => {
     const prioridad = parametros.get('prioridad')
     const estado = parametros.get('estado')
-    if (prioridad || estado) setFiltros({ ...SIN_FILTROS, prioridad: prioridad ?? '', estado: estado ?? '', cliente: parametros.get('cliente') ?? '' })
+    const antecedente = parametros.get('antecedente')
+    if (prioridad || estado || antecedente) setFiltros({ ...SIN_FILTROS, prioridad: prioridad ?? '', estado: estado ?? '', antecedente: antecedente ?? '', cliente: parametros.get('cliente') ?? '' })
     if (parametros.get('nueva') === '1') {
       setEditando(undefined)
       setFormAbierto(true)
@@ -90,6 +95,17 @@ export function PaginaCausas() {
   }, [])
 
   const hoy = hoyISO()
+  // Antecedentes de cada causa pendiente (lo aprendido de diligencias anteriores en el mismo domicilio)
+  const antecedentes = useMemo(() => {
+    const todos = construirAntecedentes(datos?.causas ?? [])
+    const mapa = new Map<number, Antecedente[]>()
+    for (const c of datos?.causas ?? []) {
+      if (c.estado !== 'Pendiente') continue
+      const lista = antecedentesDomicilio(todos, c.domicilio, c.id)
+      if (lista.length) mapa.set(c.id!, lista)
+    }
+    return mapa
+  }, [datos])
   const nombreCliente = useMemo(() => new Map((datos?.clientes ?? []).map((c) => [c.id, c.nombre])), [datos])
 
   const filtradas = useMemo(() => {
@@ -118,6 +134,8 @@ export function PaginaCausas() {
         }
         if (filtros.desde && c.fechaEncargo < filtros.desde) return false
         if (filtros.hasta && c.fechaEncargo > filtros.hasta) return false
+        if (filtros.antecedente === 'negativo' && !resumenAntecedentes(antecedentes.get(c.id!) ?? [])?.negativo) return false
+        if (filtros.antecedente === 'todos' && !antecedentes.has(c.id!)) return false
         return true
       })
       .sort((a, b) => {
@@ -128,7 +146,7 @@ export function PaginaCausas() {
         if (pa === 0) return Number(!!b.urgente) - Number(!!a.urgente) || a.fechaEncargo.localeCompare(b.fechaEncargo)
         return (b.fechaDiligencia ?? b.fechaEncargo).localeCompare(a.fechaDiligencia ?? a.fechaEncargo)
       })
-  }, [datos, busqueda, filtros, ajustes.umbralesCausas, hoy, nombreCliente])
+  }, [datos, busqueda, filtros, ajustes.umbralesCausas, hoy, nombreCliente, antecedentes])
 
   if (!datos) return <p className="text-tenue">Cargando…</p>
 
@@ -279,7 +297,7 @@ export function PaginaCausas() {
             <Boton variante="secundario" className="md:hidden" aria-expanded={verFiltros} onClick={() => setVerFiltros((v) => !v)}>
               {verFiltros ? 'Ocultar filtros' : `Filtros${Object.values(filtros).filter(Boolean).length ? ` (${Object.values(filtros).filter(Boolean).length} activos)` : ''}`}
             </Boton>
-            <div className={`${verFiltros ? 'grid' : 'hidden'} grid-cols-2 gap-3 md:grid md:grid-cols-4 xl:grid-cols-7`}>
+            <div className={`${verFiltros ? 'grid' : 'hidden'} grid-cols-2 gap-3 md:grid md:grid-cols-4 xl:grid-cols-8`}>
               <Filtro etiqueta="Estado">
                 <select className={estiloFiltro} aria-label="Estado" value={filtros.estado} onChange={poner('estado')}>
                   <option value="">Todos</option>
@@ -331,6 +349,13 @@ export function PaginaCausas() {
               </Filtro>
               <Filtro etiqueta="Encargo hasta">
                 <input type="date" className={estiloFiltro} aria-label="Encargo hasta" value={filtros.hasta} onChange={poner('hasta')} />
+              </Filtro>
+              <Filtro etiqueta="Antecedentes">
+                <select className={estiloFiltro} aria-label="Antecedentes" value={filtros.antecedente} onChange={poner('antecedente')}>
+                  <option value="">Todas</option>
+                  <option value="negativo">Domicilio con antecedente negativo</option>
+                  <option value="todos">Domicilio con cualquier antecedente</option>
+                </select>
               </Filtro>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -402,6 +427,11 @@ export function PaginaCausas() {
                           <td className="px-3 py-3">
                             {c.tipoDiligencia ?? '—'}
                             {c.domicilio && <span className="block text-sm text-tenue">{c.domicilio}</span>}
+                            {antecedentes.has(c.id!) && (
+                              <span className="mt-1 block">
+                                <EtiquetaAntecedente lista={antecedentes.get(c.id!)!} />
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-3">
                             <EtiquetaEstado causa={c} />
@@ -452,6 +482,11 @@ export function PaginaCausas() {
                           <dd className="text-tenue">{c.clienteId ? nombreCliente.get(c.clienteId) : 'Sin cliente'}</dd>
                         </div>
                       </dl>
+                      {antecedentes.has(c.id!) && (
+                        <div className="mt-2">
+                          <EtiquetaAntecedente lista={antecedentes.get(c.id!)!} />
+                        </div>
+                      )}
                       <div className="mt-3 border-t border-borde pt-3">
                         <EtiquetaEstado causa={c} />
                       </div>

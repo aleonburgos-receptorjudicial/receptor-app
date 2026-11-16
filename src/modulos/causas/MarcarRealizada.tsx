@@ -6,6 +6,7 @@ import { AreaTexto, Boton, Campo, Casilla, Opciones, Selector } from '../../comp
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { hoyISO } from '../../utilidades/formato'
+import { FRASES_RAPIDAS, PanelAntecedentes } from '../antecedentes/Antecedentes'
 import { marcarRealizada } from './servicioCausas'
 
 export function MarcarRealizada({ causa, alCerrar }: { causa: Causa | null; alCerrar: () => void }) {
@@ -34,6 +35,12 @@ export function MarcarRealizada({ causa, alCerrar }: { causa: Causa | null; alCe
     const t = v.toLowerCase()
     if (t.includes('negativ') || t.includes('no se ubic')) setResultado('Negativa')
     else if (v && !resultado) setResultado('Positiva')
+  }
+
+  // Frase rápida: se agrega a las observaciones (así la app aprende del domicilio)
+  const agregarFrase = (f: (typeof FRASES_RAPIDAS)[number]) => {
+    setObs((o) => (o.toLowerCase().includes(f.texto.toLowerCase()) ? o : o.trim() ? `${o.trim().replace(/[.]$/, '')}. ${f.texto}.` : `${f.texto}.`))
+    if (f.negativa && !resultado) setResultado('Negativa')
   }
 
   const guardar = async () => {
@@ -65,6 +72,7 @@ export function MarcarRealizada({ causa, alCerrar }: { causa: Causa | null; alCe
     >
       {causa && (
         <div className="flex flex-col gap-5">
+          <PanelAntecedentes domicilio={causa.domicilio} rut={causa.rutDemandado} nombre={causa.demandado} excluirId={causa.id} />
           <p className="text-tenue">
             {causa.tipoDiligencia ?? 'Diligencia'}
             {causa.demandado ? ` a ${causa.demandado}` : ''}
@@ -78,7 +86,22 @@ export function MarcarRealizada({ causa, alCerrar }: { causa: Causa | null; alCe
               <option key={r}>{r}</option>
             ))}
           </Selector>
-          <AreaTexto etiqueta="Observaciones" value={obs} onChange={(e) => setObs(e.target.value)} rows={4} />
+          <div className="flex flex-col gap-2">
+            <AreaTexto etiqueta="Observaciones" value={obs} onChange={(e) => setObs(e.target.value)} rows={4} />
+            <div className="flex flex-wrap gap-2" aria-label="Observaciones frecuentes">
+              {FRASES_RAPIDAS.map((f) => (
+                <button
+                  key={f.texto}
+                  type="button"
+                  onClick={() => agregarFrase(f)}
+                  className="min-h-10 rounded-full border-2 border-borde px-3 text-sm font-bold text-tinta hover:border-petroleo"
+                >
+                  + {f.texto}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-tenue">Lo que anote aquí se recuerda: si llega otra diligencia al mismo domicilio, la app le avisará.</p>
+          </div>
           <Casilla etiqueta="Estampado ya subido al PJUD" checked={estampado} onChange={(e) => setEstampado(e.target.checked)} />
         </div>
       )}

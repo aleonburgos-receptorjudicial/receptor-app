@@ -6,6 +6,7 @@ import { calcularDv, formatearRut, rutValido } from '../../../utilidades/rut'
 import { normalizar } from '../../../utilidades/texto'
 import { normalizarRol, nucleoRol, type DatosCausa } from '../servicioCausas'
 import { celdaTexto, fechaDeCelda, type HojaDetectada } from './leerExcel'
+import { antecedentesDomicilio, construirAntecedentes, textoCorto } from '../../antecedentes/antecedentes'
 
 export type Accion = 'nueva' | 'reencargo' | 'omitir'
 
@@ -132,6 +133,8 @@ export function analizarFilas(
     porNucleo.set(nucleoRol(c.rol), [...(porNucleo.get(nucleoRol(c.rol)) ?? []), c])
   }
   const vistasEnArchivo = new Set<string>()
+  // Lo aprendido de diligencias anteriores, para avisar si el domicilio tiene antecedentes
+  const antecedentes = construirAntecedentes(existentes)
   const hoy = hoyISO()
 
   return hoja.filas.map((f, i) => {
@@ -228,6 +231,9 @@ export function analizarFilas(
       urgente: normalizar(txt(f, 'prioridad')).includes('urgente') || undefined,
       reencargo: reencargo || undefined,
     }
+
+    const ant = antecedentesDomicilio(antecedentes, datos.domicilio)
+    if (ant.length) avisos.push(`Antecedente en el domicilio: ${textoCorto(ant)}`)
 
     const fila: FilaAnalizada = { numero, datos, nombreCliente, accion: 'nueva', sugerida: 'nueva', avisos, demandadoDeObservaciones }
     const omitir = (motivo: string) => {

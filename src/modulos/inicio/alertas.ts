@@ -5,6 +5,7 @@ import { hoyISO, plural, pesos } from '../../utilidades/formato'
 import { diasDesdeEmision, nivelBoleta, saldoBoleta, vigente } from '../boletas/calculos'
 import { diasDesdeEncargo, prioridadCausa } from '../causas/prioridad'
 import { alertasRetiro, diasDesdeEncargo as diasEncargoRetiro, diasRestantes, retiroActivo } from '../retiros/vencimiento'
+import { antecedentesDomicilio, construirAntecedentes, resumenAntecedentes } from '../antecedentes/antecedentes'
 
 export type NivelAlerta = 'critica' | 'alta' | 'media'
 
@@ -80,6 +81,21 @@ export function calcularAlertas(
       detalle: sinEstampar.slice(0, 3).map((c) => c.rol).join(', ') + (sinEstampar.length > 3 ? '…' : ''),
       ruta: '/causas?estado=Realizada',
       peso: sinEstampar.length,
+    })
+  }
+
+  // Diligencias pendientes en domicilios donde antes hubo un resultado negativo (no existe, no vive, eriazo…)
+  const antecedentes = construirAntecedentes(d.causas)
+  const conAntecedente = pendientes.filter((c) => resumenAntecedentes(antecedentesDomicilio(antecedentes, c.domicilio, c.id))?.negativo)
+  if (conAntecedente.length) {
+    lista.push({
+      clave: 'causas-antecedentes',
+      nivel: 'media',
+      modulo: 'Causas',
+      titulo: `${plural(conAntecedente.length, 'diligencia pendiente', 'diligencias pendientes')} en domicilios con antecedentes negativos`,
+      detalle: `Revise antes de salir: ${conAntecedente.slice(0, 3).map((c) => c.rol).join(', ')}${conAntecedente.length > 3 ? '…' : ''}.`,
+      ruta: '/causas?antecedente=negativo',
+      peso: conAntecedente.length + 500,
     })
   }
 

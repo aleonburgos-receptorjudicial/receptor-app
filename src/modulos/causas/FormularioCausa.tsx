@@ -8,6 +8,7 @@ import { AreaTexto, Boton, Campo, CampoConLista, Casilla, Opciones, Selector } f
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { fechaCL, hoyISO } from '../../utilidades/formato'
+import { PanelAntecedentes } from '../antecedentes/Antecedentes'
 import { FormularioCliente } from '../clientes/FormularioCliente'
 import { buscarDuplicado, guardarCausa, validarCausa, type DatosCausa, type ErroresCausa } from './servicioCausas'
 
@@ -151,6 +152,9 @@ export function FormularioCausa({ abierta, causa, alCerrar }: { abierta: boolean
             <Campo etiqueta="RUT del demandado" value={d.rutDemandado ?? ''} onChange={texto('rutDemandado')} error={errores.rutDemandado} placeholder="12.345.678-9" ayuda="Opcional. Se revisa el dígito verificador." />
             <div className="md:col-span-2">
               <Campo etiqueta="Domicilio de la diligencia" value={d.domicilio ?? ''} onChange={texto('domicilio')} />
+              <div className="mt-2">
+                <PanelAntecedentes domicilio={d.domicilio} rut={d.rutDemandado} nombre={d.demandado} excluirId={causa?.id} />
+              </div>
             </div>
             <CampoConLista etiqueta="Sector" opciones={ajustes.sectores} value={d.sector ?? ''} onChange={texto('sector')} ayuda="Sirve para armar la hoja de ruta. Puede escribir uno nuevo." />
             <CampoConLista

@@ -87,3 +87,9 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - PWA con vite-plugin-pwa (autoUpdate, funciona sin internet). Se desactiva en la vista previa (`VITE_ENRUTADOR=memoria`). Se pide almacenamiento persistente al iniciar.
 - Publicación: `bash scripts/publicar.sh` sube `dist/` a la rama `gh-pages` (GitHub Pages: https://aleonburgos-receptorjudicial.github.io/receptor-app/). Publicar requiere la autorización explícita de Mercedes.
 - Cada equipo (computador, celular) guarda sus propios datos: para pasarlos de uno a otro se usa el respaldo.
+
+## Decisiones: antecedentes (la app aprende de las observaciones)
+- `src/modulos/antecedentes/`: se calculan al vuelo desde las causas (no hay tabla nueva). Cada causa Realizada/Suspendida/Devuelta con observaciones o resultado deja un antecedente para su domicilio.
+- Domicilios se comparan de forma tolerante (`claveDomicilio`/`mismoDomicilio`): sin tildes, abreviaturas (Pje., Avda., N°), con o sin tipo de vía, número igual y nombre parecido; comunas distintas no coinciden.
+- Tipos detectados en el texto: domicilio no existe, no vive / se cambió, deshabitado / sitio eriazo, negativa, precaución (perro, acceso difícil) y positiva. Los cuatro primeros son «negativos» (rojo).
+- Se muestran: al escribir el domicilio de una causa, al marcar realizada (con frases rápidas), en la lista (filtro «Antecedentes», `?antecedente=negativo`), hoja de ruta (pantalla y PDF), ruta del día, importación, Inicio (alerta media) y domicilios probables de retiros. También avisa si el mismo demandado (RUT o nombre) tiene diligencias en otros domicilios.

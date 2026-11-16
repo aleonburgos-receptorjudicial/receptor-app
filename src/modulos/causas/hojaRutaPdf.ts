@@ -8,6 +8,8 @@ import { normalizar } from '../../utilidades/texto'
 export interface FilaHojaRuta {
   causa: Causa
   solicitante?: string
+  /** Antecedente del domicilio (va en Observaciones) */
+  antecedente?: string
 }
 
 const AZUL = rgb(0x1f / 255, 0x38 / 255, 0x64 / 255)
@@ -172,6 +174,7 @@ export async function generarHojaRuta(filas: FilaHojaRuta[], fecha: string, enca
         texto(2, fila.solicitante ?? '')
         texto(3, [c.demandado, c.rutDemandado].filter(Boolean).join(', '))
         texto(4, [c.domicilio, c.sector && c.sector !== c.domicilio ? `(${c.sector})` : ''].filter(Boolean).join(' '))
+        if (fila.antecedente) texto(8, `Antecedente: ${fila.antecedente}`, { maxLineas: 4, tam: 6.5 })
       }
 
       // Diligencia: casillas Personal / Art. 44 / Cédula / Otra

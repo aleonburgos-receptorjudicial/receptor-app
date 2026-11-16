@@ -11,6 +11,8 @@ import { useAviso, useConfirmar } from '../../../compartido/Dialogos'
 import { IconoVolver } from '../../../compartido/Iconos'
 import { fechaCL, hoyISO, plural } from '../../../utilidades/formato'
 import { MarcaUrgente } from '../Etiquetas'
+import { antecedentesDomicilio } from '../../antecedentes/antecedentes'
+import { EtiquetaAntecedente, useAntecedentes } from '../../antecedentes/Antecedentes'
 import { MarcarRealizada } from '../MarcarRealizada'
 import { desmarcarRealizada } from '../servicioCausas'
 import { direccionNavegable, tramosGoogleMaps, urlMaps, urlWaze } from './navegacion'
@@ -25,6 +27,7 @@ export function PaginaRuta() {
   const navegar = useNavigate()
   const [realizando, setRealizando] = useState<Causa | null>(null)
   const [ocultarHechas, setOcultarHechas] = useState(false)
+  const todosAntecedentes = useAntecedentes()
   const ruta = ajustes.rutaDelDia
 
   const datos = useLiveQuery(async () => {
@@ -157,6 +160,11 @@ export function PaginaRuta() {
               <article className={`min-w-0 flex-1 rounded-xl border p-4 ${hecha ? 'border-borde bg-papel' : 'border-borde bg-superficie'}`}>
                 <p className={`text-lg font-bold ${hecha ? 'text-tenue line-through decoration-1' : ''}`}>{c.domicilio ?? 'Sin domicilio registrado'}</p>
                 {c.sector && <p className="text-tenue">{c.sector}</p>}
+                {!hecha && antecedentesDomicilio(todosAntecedentes, c.domicilio, c.id).length > 0 && (
+                  <p className="mt-1">
+                    <EtiquetaAntecedente lista={antecedentesDomicilio(todosAntecedentes, c.domicilio, c.id)} />
+                  </p>
+                )}
                 <p className="mt-1">{c.demandado ?? <span className="text-tenue">Demandado sin nombre</span>}</p>
                 <p className="mt-1 flex flex-wrap items-center gap-2">
                   <span className="rounded-md bg-petroleo-suave px-2 py-0.5 font-serif font-bold text-petroleo cifra">{c.rol}</span>
