@@ -35,7 +35,7 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Navegación con HashRouter; la vista previa en claude.ai se compila con `VITE_ENRUTADOR=memoria` (MemoryRouter).
 - Código ordenado por módulos en `src/modulos/`; `src/sincronizacion/` queda reservado para Supabase/Drive (no implementar aún).
 - Comentarios del código en español.
-- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas ✅, 5) Inicio, respaldos, PWA y pruebas finales ✅.
+- Fases: 1) base y Clientes ✅, 2) Causas ✅, 3) Retiros ✅, 4) Boletas ✅, 5) Inicio, respaldos, PWA y pruebas finales ✅, 6) Facturas de sus empresas ✅.
 
 ## Datos
 - Guardar la información (causas, notificaciones, plazos, honorarios) **localmente en el navegador**.
@@ -91,6 +91,16 @@ Estas reglas se aplican a TODAS las aplicaciones que se creen en esta carpeta.
 - Cada equipo (computador, celular) guarda sus propios datos: para pasarlos de uno a otro se usa el respaldo.
 - Logo de Mercedes (balanza con circuitos): `public/logo.png` (fondo transparente) sobre un recuadro blanco en el menú lateral y en el encabezado del celular; íconos de la PWA, apple-touch-icon y `favicon.png` generados desde él con fondo blanco.
 - Actualización: `src/pwa/actualizar.ts` registra el service worker con `virtual:pwa-register` (autoUpdate): al abrir la app, si hay versión nueva, se recarga sola una vez. En la vista previa se usa `src/pwa/sinPwa.ts`.
+
+## Decisiones: facturas (sección «Boletas y facturas»)
+- La sección se llama **Boletas y facturas** (en la barra del celular: «Documentos»; la ruta sigue siendo `/boletas`).
+- Mercedes registra las facturas que EMITEN sus empresas (ventas), subiendo el PDF de cada una. No las recibidas.
+- Se guardan en la misma tabla `boletas` con `tipoDocumento: 'factura'` (vacío = boleta), `empresaRut/empresaNombre`, `neto`, `exento`, `iva`; bruto = líquido = monto a cobrar = total, retención 0. Así comparten pagos, estados, alertas, recordatorios y gráficos. IVA = neto × 19 % (`TASA_IVA`), redondeado; si el PDF trae un IVA que difiere en $1, se respeta.
+- Dexie versión 3: el N° deja de ser único (`numero` sin `&`); se indexan `tipoDocumento` y `empresaRut`; `archivos` gana `boletaId` (PDF de la factura, `boleta.archivoId`). Duplicado = boleta con mismo N°, o factura con mismo N° y misma empresa.
+- «Mis empresas» (`ajustes.empresas`, nombre y RUT) en Configuración → Boletas y facturas; se agregan solas al subir un PDF (con nombre editable en la vista previa). Renombrar actualiza las facturas.
+- Lectura del PDF (`importar/leerFactura.ts`, pdf.js, sin enviar nada): folio, fecha, emisor (prefiere un RUT de «Mis empresas»), cliente tras «Señor(es)/Razón social/Cliente», neto/exento/IVA/total y detalle; reconoce factura exenta, rechaza notas de crédito y PDF escaneados. Pruebas con facturas ficticias generadas con reportlab. PENDIENTE: validar con un PDF real de Mercedes (datos tapados).
+- Pantalla: selector Todo / Boletas de honorarios / Facturas de cada empresa (los indicadores y la lista siguen la vista); con una empresa elegida se muestra «IVA por mes» (para el F29). Excel con hojas Boletas, Facturas, IVA por mes, Impagas, Por cliente y Anuladas.
+- PWA: `skipWaiting` y `clientsClaim` activados para que la versión nueva se aplique al abrir la app (antes quedaba esperando hasta cerrar todas las ventanas).
 
 ## Decisiones: antecedentes (la app aprende de las observaciones)
 - `src/modulos/antecedentes/`: se calculan al vuelo desde las causas (no hay tabla nueva). Cada causa Realizada/Suspendida/Devuelta con observaciones o resultado deja un antecedente para su domicilio.

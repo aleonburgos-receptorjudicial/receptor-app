@@ -1,4 +1,4 @@
-// Recordatorio de cobro: texto listo para pegar en un correo, con las boletas impagas de un cliente.
+// Recordatorio de cobro: texto listo para pegar en un correo, con las boletas o facturas impagas de un cliente.
 import { useEffect, useMemo, useState } from 'react'
 import { useAjustes } from '../../db/ajustes'
 import type { Boleta, Cliente, Pago } from '../../db/tipos'
@@ -6,7 +6,14 @@ import { Boton } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { fechaCL, hoyISO, plural, pesos } from '../../utilidades/formato'
-import { diasDesdeEmision, saldoBoleta } from './calculos'
+import { diasDesdeEmision, esFactura, nombreDoc, saldoBoleta } from './calculos'
+
+/** «boletas de honorarios», «facturas» o «boletas de honorarios y facturas» */
+function queSeDebe(lista: Boleta[]): string {
+  const f = lista.some(esFactura)
+  const b = lista.some((x) => !esFactura(x))
+  return f && b ? 'boletas de honorarios y facturas' : f ? 'facturas' : 'boletas de honorarios'
+}
 
 export function textoRecordatorio(nombre: string, boletas: Boleta[], pagos: Pago[], firma: string, hoy = hoyISO()): string {
   const impagas = boletas.filter((b) => saldoBoleta(b, pagos) > 0).sort((a, b) => a.fechaEmision.localeCompare(b.fechaEmision))
@@ -14,12 +21,12 @@ export function textoRecordatorio(nombre: string, boletas: Boleta[], pagos: Pago
   const lineas = impagas.map((b) => {
     const saldo = saldoBoleta(b, pagos)
     const parcial = saldo < b.montoCobrar ? ` (saldo de un total de ${pesos(b.montoCobrar)})` : ''
-    return `- Boleta N° ${b.numero}, emitida el ${fechaCL(b.fechaEmision)} (${plural(diasDesdeEmision(b, hoy), 'día', 'días')}): ${pesos(saldo)}${parcial}`
+    return `- ${nombreDoc(b)} N° ${b.numero}${esFactura(b) && b.empresaNombre ? ` de ${b.empresaNombre}` : ''}, emitida el ${fechaCL(b.fechaEmision)} (${plural(diasDesdeEmision(b, hoy), 'día', 'días')}): ${pesos(saldo)}${parcial}`
   })
   return [
     `Estimados ${nombre}:`,
     '',
-    `Junto con saludar, les recuerdo que se encuentran pendientes de pago las siguientes boletas de honorarios:`,
+    `Junto con saludar, les recuerdo que se encuentran pendientes de pago las siguientes ${queSeDebe(impagas)}:`,
     '',
     ...lineas,
     '',
@@ -59,7 +66,8 @@ export function RecordatorioCobro({
       avisar('No se pudo copiar automáticamente: seleccione el texto y cópielo.', 'error')
     }
   }
-  const asunto = `Boletas de honorarios pendientes de pago`
+  const pendientes = boletas.filter((b) => saldoBoleta(b, pagos) > 0)
+  const asunto = `${queSeDebe(pendientes).replace(/^./, (c) => c.toUpperCase())} pendientes de pago`
 
   return (
     <Ventana

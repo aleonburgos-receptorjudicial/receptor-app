@@ -149,7 +149,32 @@ export type EstadoBoleta = (typeof ESTADOS_BOLETA)[number]
  */
 export type PagadorRetencion = 'Receptor' | 'Cliente'
 
+/** Tipo de documento: boleta de honorarios (de la receptora) o factura (de una de sus empresas) */
+export type TipoDocumento = 'boleta' | 'factura'
+
+/** Empresa de la usuaria que emite facturas */
+export interface Empresa {
+  nombre: string
+  rut: string
+}
+
+/** IVA vigente en Chile */
+export const TASA_IVA = 19
+
+/**
+ * Boleta de honorarios o factura emitida. Las facturas usan los mismos pagos, estados y alertas;
+ * en ellas bruto = líquido = monto a cobrar = total, y la retención es 0.
+ */
 export interface Boleta extends RegistroBase {
+  /** Vacío en los registros antiguos: se considera boleta */
+  tipoDocumento?: TipoDocumento
+  /** Facturas: empresa que la emitió */
+  empresaRut?: string
+  empresaNombre?: string
+  /** Facturas: monto neto (afecto a IVA), monto exento e IVA */
+  neto?: number
+  exento?: number
+  iva?: number
   numero: number
   fechaEmision: string
   clienteId?: number
@@ -169,6 +194,8 @@ export interface Boleta extends RegistroBase {
   causaIds?: number[]
   /** De dónde salió: a mano, PDF del SII o informe mensual del SII */
   origen?: 'manual' | 'pdf' | 'informe'
+  /** Facturas: id del PDF guardado en «archivos» */
+  archivoId?: number
 }
 
 export interface Pago extends RegistroBase {
@@ -198,7 +225,10 @@ export interface CampoRetiro {
 /** Archivo adjunto (por ahora, informes PDF de los retiros), guardado dentro del equipo */
 export interface Archivo {
   id?: number
-  retiroId: number
+  /** Retiro al que pertenece (informes de los dealers) */
+  retiroId?: number
+  /** Factura a la que pertenece (PDF de la factura) */
+  boletaId?: number
   nombre: string
   tipo: string
   tamano: number
@@ -225,6 +255,8 @@ export interface Ajustes {
   /** Alertas de boletas impagas en días desde la emisión */
   umbralesBoletas: { primera: number; segunda: number; tercera: number }
   porcentajeRetencion: number
+  /** Empresas de la usuaria que emiten facturas */
+  empresas: Empresa[]
   tiposCausa: string[]
   /** Mandantes (bancos, financieras…) para sugerir en causas y retiros */
   mandantes: string[]

@@ -17,7 +17,7 @@ export const MENU: ItemMenu[] = [
   { ruta: '/', texto: 'Inicio', textoCorto: 'Inicio', Icono: IconoInicio },
   { ruta: '/causas', texto: 'Causas', textoCorto: 'Causas', Icono: IconoCausas },
   { ruta: '/retiros', texto: 'Retiros de vehículos', textoCorto: 'Retiros', Icono: IconoVehiculo },
-  { ruta: '/boletas', texto: 'Boletas de honorarios', textoCorto: 'Boletas', Icono: IconoBoleta },
+  { ruta: '/boletas', texto: 'Boletas y facturas', textoCorto: 'Documentos', Icono: IconoBoleta },
   { ruta: '/clientes', texto: 'Clientes', textoCorto: 'Clientes', Icono: IconoClientes },
   { ruta: '/configuracion', texto: 'Configuración y respaldos', textoCorto: 'Ajustes', Icono: IconoAjustes },
 ]
@@ -80,7 +80,7 @@ export function Estructura() {
             to={ruta}
             end={ruta === '/'}
             className={({ isActive }) =>
-              `flex min-h-16 flex-col items-center justify-center gap-0.5 text-[0.75rem] ${
+              `flex min-h-16 min-w-0 flex-col items-center justify-center gap-0.5 text-[0.75rem] tracking-tight ${
                 isActive ? 'font-bold text-petroleo' : 'text-tenue'
               }`
             }

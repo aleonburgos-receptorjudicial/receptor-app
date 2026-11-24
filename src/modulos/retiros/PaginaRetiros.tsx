@@ -64,7 +64,7 @@ export function PaginaRetiros() {
     const [retiros, clientes, archivos] = await Promise.all([db.retiros.toArray(), db.clientes.orderBy('nombre').toArray(), db.archivos.toArray()])
     // Informes PDF agrupados por retiro
     const adjuntos = new Map<number, Archivo[]>()
-    for (const a of archivos) adjuntos.set(a.retiroId, [...(adjuntos.get(a.retiroId) ?? []), a])
+    for (const a of archivos) if (a.retiroId) adjuntos.set(a.retiroId, [...(adjuntos.get(a.retiroId) ?? []), a])
     return { retiros, clientes, adjuntos }
   }, [])
   const hoy = hoyISO()

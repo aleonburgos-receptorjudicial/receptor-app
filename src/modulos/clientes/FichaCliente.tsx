@@ -8,7 +8,7 @@ import { Boton, Seccion, SinDatos } from '../../compartido/Controles'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoBasura, IconoCorreo, IconoEditar, IconoTelefono, IconoVolver } from '../../compartido/Iconos'
 import { fechaCL, plural, pesos } from '../../utilidades/formato'
-import { saldoBoleta } from '../boletas/calculos'
+import { nombreDoc, saldoBoleta } from '../boletas/calculos'
 import { FormularioCliente } from './FormularioCliente'
 import { eliminarCliente, resumirCliente, vinculosCliente } from './servicioClientes'
 
@@ -60,7 +60,7 @@ export function FichaCliente() {
           </p>
           {v.total > 0 && (
             <p className="mt-2">
-              Tiene {plural(v.causas, 'causa', 'causas')}, {plural(v.retiros, 'retiro', 'retiros')} y {plural(v.boletas, 'boleta', 'boletas')}.
+              Tiene {plural(v.causas, 'causa', 'causas')}, {plural(v.retiros, 'retiro', 'retiros')} y {plural(v.boletas, 'boleta o factura', 'boletas o facturas')}.
               Esos registros se conservan, pero quedarán sin cliente. Si es un cliente repetido, use mejor «Fusionar clientes».
             </p>
           )}
@@ -79,11 +79,11 @@ export function FichaCliente() {
     { texto: 'Causas atrasadas', valor: String(resumen.causasAtrasadas), alerta: resumen.causasAtrasadas > 0 },
     { texto: 'Causas realizadas', valor: String(resumen.causasRealizadas) },
     { texto: 'Retiros activos', valor: String(resumen.retirosActivos) },
-    { texto: 'Adeudado', valor: pesos(resumen.adeudado), detalle: plural(resumen.boletasImpagas, 'boleta impaga', 'boletas impagas') },
+    { texto: 'Adeudado', valor: pesos(resumen.adeudado), detalle: plural(resumen.boletasImpagas, 'documento impago', 'documentos impagos') },
     {
       texto: 'Tiempo promedio de pago',
       valor: resumen.promedioPago === null ? '—' : plural(resumen.promedioPago, 'día', 'días'),
-      detalle: resumen.promedioPago === null ? 'Aún sin boletas pagadas' : undefined,
+      detalle: resumen.promedioPago === null ? 'Aún sin pagos' : undefined,
     },
   ]
 
@@ -194,9 +194,9 @@ export function FichaCliente() {
         )}
       </Seccion>
 
-      <Seccion titulo={`Boletas vigentes (${boletasVigentes.length})`}>
+      <Seccion titulo={`Boletas y facturas vigentes (${boletasVigentes.length})`}>
         {boletasVigentes.length === 0 ? (
-          <p className="text-tenue">Este cliente aún no tiene boletas de honorarios.</p>
+          <p className="text-tenue">Este cliente aún no tiene boletas ni facturas.</p>
         ) : (
           <ul className="divide-y divide-borde">
             {boletasVigentes
@@ -206,7 +206,7 @@ export function FichaCliente() {
                 return (
                   <li key={b.id} className="flex flex-wrap items-baseline justify-between gap-2 py-3">
                     <span>
-                      <span className="font-bold cifra">Boleta N° {b.numero}</span>
+                      <span className="font-bold cifra">{nombreDoc(b)} N° {b.numero}</span>
                       <span className="block text-tenue">Emitida {fechaCL(b.fechaEmision)}</span>
                     </span>
                     <span className="text-right cifra">

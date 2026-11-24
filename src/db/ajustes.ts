@@ -46,6 +46,7 @@ export const AJUSTES_POR_DEFECTO: Ajustes = {
   umbralesBoletas: { primera: 30, segunda: 60, tercera: 90 },
   // Tasa de retención de boletas de honorarios vigente en 2026 (Ley 21.133)
   porcentajeRetencion: 15.25,
+  empresas: [],
   tiposCausa: ['Civil', 'Exhorto', 'Protección', 'Laboral'],
   mandantes: [],
   tiposDiligencia: [

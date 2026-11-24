@@ -9,6 +9,7 @@ import { EditorCamposRetiro } from './EditorCamposRetiro'
 import { SeccionInstalar } from './SeccionInstalar'
 import { SeccionRespaldos } from './SeccionRespaldos'
 import { EditorLista } from './EditorLista'
+import { EditorEmpresas } from './EditorEmpresas'
 import { useAviso, useConfirmar } from '../../compartido/Dialogos'
 import { IconoLuna } from '../../compartido/Iconos'
 
@@ -280,8 +281,11 @@ export function PaginaConfiguracion() {
         <EditorCamposRetiro campos={ajustes.camposRetiro} />
       </Seccion>
 
-      <Seccion titulo="Boletas de honorarios">
-        <p className="mb-4 max-w-[65ch] text-tenue">Las boletas impagas se marcan en amarillo, naranja y rojo según los días desde la emisión.</p>
+      <Seccion titulo="Boletas y facturas">
+        <div className="mb-8">
+          <EditorEmpresas empresas={ajustes.empresas} />
+        </div>
+        <p className="mb-4 max-w-[65ch] text-tenue">Las boletas y facturas impagas se marcan en amarillo, naranja y rojo según los días desde la emisión.</p>
         <div className="grid gap-4 md:grid-cols-3">
           <Campo etiqueta="Primera alerta (amarillo)" type="number" min={1} inputMode="numeric" value={umbBol.primera} onChange={(e) => setUmbBol((u) => ({ ...u, primera: Number(e.target.value) }))} ayuda="días" />
           <Campo etiqueta="Segunda alerta (naranja)" type="number" min={1} inputMode="numeric" value={umbBol.segunda} onChange={(e) => setUmbBol((u) => ({ ...u, segunda: Number(e.target.value) }))} ayuda="días" />
@@ -289,7 +293,7 @@ export function PaginaConfiguracion() {
         </div>
         {errorBol && <p className="mt-2 font-bold text-rojo" role="alert">{errorBol}</p>}
         <Boton className="mt-4" onClick={guardarUmbBol}>
-          Guardar plazos de boletas
+          Guardar plazos de cobro
         </Boton>
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
@@ -336,7 +340,7 @@ export function PaginaConfiguracion() {
 
       <Seccion titulo="Datos de ejemplo">
         <p className="max-w-[65ch] text-tenue">
-          Cargue clientes, causas, retiros y boletas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
+          Cargue clientes, causas, retiros, boletas y facturas inventados para probar la app. Cuando termine, bórrelos con un botón: sus datos reales no se tocan.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Boton variante="secundario" onClick={cargar} disabled={conEjemplo === true}>

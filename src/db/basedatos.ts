@@ -28,6 +28,13 @@ export class BaseReceptora extends Dexie {
     this.version(2).stores({
       archivos: '++id, retiroId, ejemplo',
     })
+    // Versión 3: facturas de las empresas junto a las boletas. El N° deja de ser único
+    // (una factura puede tener el mismo N° que una boleta, y cada empresa tiene su propia numeración).
+    // Los PDF de las facturas se guardan en «archivos», asociados a la factura.
+    this.version(3).stores({
+      boletas: '++id, numero, tipoDocumento, empresaRut, clienteId, estado, fechaEmision, ejemplo',
+      archivos: '++id, retiroId, boletaId, ejemplo',
+    })
   }
 }
 

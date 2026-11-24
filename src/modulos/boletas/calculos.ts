@@ -1,6 +1,6 @@
 // Cálculos de boletas: montos, saldo pendiente, tiempo de pago, alertas e indicadores.
 // Las boletas ANULADAS nunca entran en totales, gráficos, alertas ni barras de progreso.
-import type { Ajustes, Boleta, Cliente, Pago, PagadorRetencion } from '../../db/tipos'
+import { TASA_IVA, type Ajustes, type Boleta, type Cliente, type Pago, type PagadorRetencion } from '../../db/tipos'
 import { diasEntre, hoyISO } from '../../utilidades/formato'
 import { normalizar } from '../../utilidades/texto'
 
@@ -15,6 +15,28 @@ export function calcularMontos(bruto: number, porcentaje: number, paga: PagadorR
 }
 
 export const vigente = (b: Boleta) => b.estado !== 'Anulada'
+
+/** ¿Es una factura? (los registros antiguos, sin tipo, son boletas) */
+export const esFactura = (b: Pick<Boleta, 'tipoDocumento'>) => b.tipoDocumento === 'factura'
+
+/** «Boleta» o «Factura», para los textos */
+export const nombreDoc = (b: Pick<Boleta, 'tipoDocumento'>) => (esFactura(b) ? 'Factura' : 'Boleta')
+
+/** Palabra para un grupo de documentos: «boleta», «factura» o «documento» si hay de los dos */
+export function palabraDocs(lista: Pick<Boleta, 'tipoDocumento'>[]): { uno: string; varios: string } {
+  const facturas = lista.filter(esFactura).length
+  if (facturas === 0) return { uno: 'boleta', varios: 'boletas' }
+  if (facturas === lista.length) return { uno: 'factura', varios: 'facturas' }
+  return { uno: 'documento', varios: 'documentos' }
+}
+
+/** IVA y total de una factura: IVA = neto × 19 % (redondeado al peso), total = neto + exento + IVA */
+export function calcularFactura(neto: number, exento: number) {
+  const n = Math.round(neto || 0)
+  const e = Math.round(exento || 0)
+  const iva = Math.round((n * TASA_IVA) / 100)
+  return { neto: n, exento: e, iva, total: n + e + iva }
+}
 
 /** Suma de los pagos registrados para una boleta */
 export function totalPagado(boleta: Boleta, pagos: Pago[]): number {
@@ -74,6 +96,11 @@ export interface Indicadores {
   porCobrar: number
   enAlerta: number
   retenciones: number
+  /** IVA de las facturas vigentes */
+  iva: number
+  /** Cuántas boletas y facturas vigentes hay */
+  boletasVigentes: number
+  facturasVigentes: number
   promedioPago: number | null
   vigentes: number
   impagas: number
@@ -89,6 +116,9 @@ export function indicadores(boletas: Boleta[], pagos: Pago[], u: Ajustes['umbral
     porCobrar: impagas.reduce((s, b) => s + saldoBoleta(b, pagos), 0),
     enAlerta: impagas.filter((b) => diasDesdeEmision(b, hoy) >= u.primera).reduce((s, b) => s + saldoBoleta(b, pagos), 0),
     retenciones: vig.reduce((s, b) => s + b.retencion, 0),
+    iva: vig.reduce((s, b) => s + (b.iva ?? 0), 0),
+    boletasVigentes: vig.filter((b) => !esFactura(b)).length,
+    facturasVigentes: vig.filter(esFactura).length,
     promedioPago: promedioDiasPago(vig, pagos),
     vigentes: vig.length,
     impagas: impagas.length,
@@ -173,4 +203,36 @@ export function porCliente(boletas: Boleta[], pagos: Pago[], clientes: Cliente[]
       }
     })
     .sort((a, b) => b.adeudado - a.adeudado || b.pagado - a.pagado)
+}
+
+export interface MesIva {
+  clave: string
+  mes: string
+  cantidad: number
+  neto: number
+  exento: number
+  iva: number
+  total: number
+}
+
+const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+/** Facturas vigentes emitidas por mes (neto, exento, IVA y total), de la más reciente a la más antigua: sirve para la declaración mensual del IVA */
+export function resumenIvaMensual(documentos: Boleta[], meses = 12, hoy = hoyISO()): MesIva[] {
+  const [a, m] = hoy.split('-').map(Number)
+  const lista: MesIva[] = []
+  for (let i = 0; i < meses; i++) {
+    const fecha = new Date(a, m - 1 - i, 1)
+    lista.push({ clave: `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`, mes: `${MESES_LARGOS[fecha.getMonth()]} ${fecha.getFullYear()}`, cantidad: 0, neto: 0, exento: 0, iva: 0, total: 0 })
+  }
+  for (const f of documentos.filter((d) => esFactura(d) && vigente(d))) {
+    const fila = lista.find((x) => x.clave === f.fechaEmision.slice(0, 7))
+    if (!fila) continue
+    fila.cantidad++
+    fila.neto += f.neto ?? 0
+    fila.exento += f.exento ?? 0
+    fila.iva += f.iva ?? 0
+    fila.total += f.montoCobrar
+  }
+  return lista
 }

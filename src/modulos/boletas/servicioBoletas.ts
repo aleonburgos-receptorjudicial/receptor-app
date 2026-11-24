@@ -4,7 +4,7 @@ import type { Boleta, Cliente, Pago } from '../../db/tipos'
 import { hoyISO } from '../../utilidades/formato'
 import { limpiarRut, revisarRut } from '../../utilidades/rut'
 import { normalizar } from '../../utilidades/texto'
-import { calcularMontos, totalPagado } from './calculos'
+import { calcularFactura, calcularMontos, esFactura, totalPagado } from './calculos'
 
 export type DatosBoleta = Omit<Boleta, 'id' | 'creado' | 'actualizado' | 'ejemplo'>
 export type ErroresBoleta = Partial<Record<keyof DatosBoleta, string>>
@@ -38,10 +38,67 @@ export function validarBoleta(d: DatosBoleta): { errores: ErroresBoleta; datos: 
   }
 }
 
-/** Busca otra boleta con el mismo número */
-export async function boletaPorNumero(numero: number, excluirId?: number): Promise<Boleta | undefined> {
-  const b = await db.boletas.where('numero').equals(numero).first()
-  return b && b.id !== excluirId ? b : undefined
+/** Revisa una factura y calcula IVA y total. En la factura: bruto = líquido = monto a cobrar = total, sin retención. */
+export function validarFactura(d: DatosBoleta, ivaLeido?: number): { errores: ErroresBoleta; datos: DatosBoleta } {
+  const errores: ErroresBoleta = {}
+  if (!Number.isInteger(d.numero) || d.numero <= 0) errores.numero = 'Escriba el número (folio) de la factura.'
+  if (!d.fechaEmision) errores.fechaEmision = 'Indique la fecha de emisión.'
+  else if (d.fechaEmision > hoyISO()) errores.fechaEmision = 'La fecha de emisión no puede ser posterior a hoy.'
+  const empresa = revisarRut(d.empresaRut)
+  if (!d.empresaRut?.trim()) errores.empresaRut = 'Elija la empresa que emitió la factura.'
+  else if (empresa.error) errores.empresaRut = empresa.error
+  const rut = revisarRut(d.rutCliente)
+  if (rut.error) errores.rutCliente = rut.error
+  if (!d.clienteId && !d.nombreCliente?.trim()) errores.clienteId = 'Elija o escriba el cliente.'
+  if ((d.neto ?? 0) < 0) errores.neto = 'El neto no puede ser negativo.'
+  if ((d.exento ?? 0) < 0) errores.exento = 'El exento no puede ser negativo.'
+  const m = calcularFactura(d.neto ?? 0, d.exento ?? 0)
+  // Si el PDF trae un IVA que difiere en $1 por redondeo, se respeta el de la factura
+  const iva = ivaLeido !== undefined && Math.abs(ivaLeido - m.iva) <= 1 ? ivaLeido : m.iva
+  const total = m.neto + m.exento + iva
+  if (total <= 0) errores.neto = 'Escriba el monto neto o el exento de la factura.'
+  return {
+    errores,
+    datos: {
+      ...d,
+      tipoDocumento: 'factura',
+      empresaRut: empresa.valor ?? d.empresaRut,
+      empresaNombre: d.empresaNombre?.trim() || undefined,
+      neto: m.neto,
+      exento: m.exento,
+      iva,
+      bruto: total,
+      porcentajeRetencion: 0,
+      retencion: 0,
+      liquido: total,
+      pagaRetencion: 'Cliente',
+      montoCobrar: total,
+      rutCliente: rut.valor,
+      nombreCliente: d.nombreCliente?.trim() || undefined,
+      glosa: d.glosa?.trim() || undefined,
+      nota: d.nota?.trim() || undefined,
+      causaIds: [],
+      fechaAnulacion: d.estado === 'Anulada' ? d.fechaAnulacion || hoyISO() : undefined,
+    },
+  }
+}
+
+/**
+ * Busca otro documento igual: una boleta con el mismo N°, o una factura con el mismo N° de la misma empresa
+ * (cada empresa tiene su propia numeración, y las facturas y boletas también).
+ */
+export async function documentoRepetido(d: Pick<Boleta, 'numero' | 'tipoDocumento' | 'empresaRut'>, excluirId?: number): Promise<Boleta | undefined> {
+  const mismos = await db.boletas.where('numero').equals(d.numero).toArray()
+  return mismos.find((b) => b.id !== excluirId && esFactura(b) === esFactura(d) && (!esFactura(d) || limpiarRut(b.empresaRut ?? '') === limpiarRut(d.empresaRut ?? '')))
+}
+
+/** Guarda (o reemplaza) el PDF de una factura y lo deja asociado */
+export async function guardarPdfFactura(boletaId: number, archivo: Blob, nombre: string): Promise<void> {
+  await db.transaction('rw', db.archivos, db.boletas, async () => {
+    await db.archivos.where('boletaId').equals(boletaId).delete()
+    const id = (await db.archivos.add({ boletaId, nombre, tipo: archivo.type || 'application/pdf', tamano: archivo.size, agregado: ahoraISO(), datos: archivo })) as number
+    await db.boletas.update(boletaId, { archivoId: id })
+  })
 }
 
 /** Deja las causas apuntando a esta boleta (y suelta las que ya no están asociadas) */
@@ -66,10 +123,11 @@ export async function guardarBoleta(datos: DatosBoleta, id?: number): Promise<nu
   return boletaId!
 }
 
-/** Elimina la boleta, sus pagos y la desvincula de sus causas */
+/** Elimina la boleta o factura, sus pagos, su PDF y la desvincula de sus causas */
 export async function eliminarBoleta(id: number): Promise<void> {
-  await db.transaction('rw', db.boletas, db.pagos, db.causas, async () => {
+  await db.transaction('rw', [db.boletas, db.pagos, db.causas, db.archivos], async () => {
     await db.pagos.where('boletaId').equals(id).delete()
+    await db.archivos.where('boletaId').equals(id).delete()
     await db.causas.where('boletaId').equals(id).modify({ boletaId: undefined })
     await db.boletas.delete(id)
   })

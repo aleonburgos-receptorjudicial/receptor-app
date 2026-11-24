@@ -2,7 +2,7 @@
 // Las causas y boletas se agrupan (pueden ser muchas); los retiros vencidos o por vencer van uno por uno.
 import type { Ajustes, Boleta, Causa, Pago, Retiro } from '../../db/tipos'
 import { hoyISO, plural, pesos } from '../../utilidades/formato'
-import { diasDesdeEmision, nivelBoleta, saldoBoleta, vigente } from '../boletas/calculos'
+import { diasDesdeEmision, nivelBoleta, nombreDoc, palabraDocs, saldoBoleta, vigente } from '../boletas/calculos'
 import { diasDesdeEncargo, prioridadCausa } from '../causas/prioridad'
 import { alertasRetiro, diasDesdeEncargo as diasEncargoRetiro, diasRestantes, retiroActivo } from '../retiros/vencimiento'
 import { antecedentesDomicilio, construirAntecedentes, resumenAntecedentes } from '../antecedentes/antecedentes'
@@ -22,6 +22,12 @@ export interface Alerta {
 }
 
 const ORDEN: Record<NivelAlerta, number> = { critica: 0, alta: 1, media: 2 }
+
+/** «boleta impaga», «factura impaga» o «documento impago» (y su plural) */
+function impagasTexto(lista: Boleta[]): [string, string] {
+  const p = palabraDocs(lista)
+  return p.uno === 'documento' ? ['documento impago', 'documentos impagos'] : [`${p.uno} impaga`, `${p.varios} impagas`]
+}
 
 export function calcularAlertas(
   d: { causas: Causa[]; retiros: Retiro[]; boletas: Boleta[]; pagos: Pago[] },
@@ -143,8 +149,8 @@ export function calcularAlertas(
       clave: `bol-${nivel}`,
       nivel: n,
       modulo: 'Boletas',
-      titulo: `${plural(g.length, 'boleta impaga', 'boletas impagas')} ${texto}: ${pesos(monto)}`,
-      detalle: `La más antigua: N° ${g[0].numero}, emitida hace ${plural(diasDesdeEmision(g[0], hoy), 'día', 'días')}.`,
+      titulo: `${plural(g.length, ...impagasTexto(g))} ${texto}: ${pesos(monto)}`,
+      detalle: `La más antigua: ${nombreDoc(g[0]).toLowerCase()} N° ${g[0].numero}, emitida hace ${plural(diasDesdeEmision(g[0], hoy), 'día', 'días')}.`,
       ruta: '/boletas?pestana=impagas',
       peso: monto,
     })

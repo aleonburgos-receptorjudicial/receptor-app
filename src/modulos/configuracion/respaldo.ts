@@ -182,12 +182,13 @@ export async function descargarExcelCompleto(): Promise<void> {
   )
   hoja(
     boletas.map((b) => ({
-      'N°': b.numero, Emisión: f(b.fechaEmision), Cliente: (b.clienteId ? nombre.get(b.clienteId) : undefined) ?? b.nombreCliente ?? '', 'RUT del cliente': b.rutCliente ?? '',
-      Glosa: b.glosa ?? '', Bruto: b.bruto, '% retención': b.porcentajeRetencion, Retención: b.retencion, Líquido: b.liquido, 'Monto a cobrar': b.montoCobrar, Estado: b.estado, Nota: b.nota ?? '',
+      Tipo: b.tipoDocumento === 'factura' ? 'Factura' : 'Boleta', 'N°': b.numero, Empresa: b.empresaNombre ?? '', 'RUT empresa': b.empresaRut ?? '', Emisión: f(b.fechaEmision), Cliente: (b.clienteId ? nombre.get(b.clienteId) : undefined) ?? b.nombreCliente ?? '', 'RUT del cliente': b.rutCliente ?? '',
+      Glosa: b.glosa ?? '', Bruto: b.bruto, '% retención': b.porcentajeRetencion, Retención: b.retencion, Líquido: b.liquido, Neto: b.neto ?? '', Exento: b.exento ?? '', IVA: b.iva ?? '', 'Monto a cobrar': b.montoCobrar, Estado: b.estado, Nota: b.nota ?? '',
     })),
-    'Boletas',
+    'Boletas y facturas',
   )
   const numero = new Map(boletas.map((b) => [b.id, b.numero]))
-  hoja(pagos.map((p) => ({ 'Boleta N°': numero.get(p.boletaId) ?? '', Fecha: f(p.fecha), Monto: p.monto, Medio: p.medio, Nota: p.nota ?? '' })), 'Pagos')
+  const tipo = new Map(boletas.map((b) => [b.id, b.tipoDocumento === 'factura' ? 'Factura' : 'Boleta']))
+  hoja(pagos.map((p) => ({ Documento: tipo.get(p.boletaId) ?? '', 'N°': numero.get(p.boletaId) ?? '', Fecha: f(p.fecha), Monto: p.monto, Medio: p.medio, Nota: p.nota ?? '' })), 'Pagos')
   XLSX.writeFile(libro, `Datos Receptor Judicial ${fechaCL(hoyISO())}.xlsx`, { compression: true })
 }

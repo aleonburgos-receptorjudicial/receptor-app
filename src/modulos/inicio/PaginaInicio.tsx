@@ -71,13 +71,14 @@ export function PaginaInicio() {
     { t: `Causas con más de ${ajustes.umbralesCausas.alta} días`, v: String(calc.atrasadas), a: '/causas?prioridad=maxima', alerta: calc.atrasadas > 0 },
     { t: `Oficios por vencer (${ajustes.diasAvisoRenovacion} días)`, v: String(calc.porVencer), a: '/retiros?vence=renovar', aviso: calc.porVencer > 0 },
     { t: 'Oficios vencidos', v: String(calc.vencidos), a: '/retiros?vence=vencido', alerta: calc.vencidos > 0 },
-    { t: 'Boletas impagas', v: String(ind.impagas), a: '/boletas?pestana=impagas' },
+    { t: 'Boletas y facturas impagas', v: String(ind.impagas), a: '/boletas?pestana=impagas' },
     { t: 'Por cobrar', v: pesos(ind.porCobrar), a: '/boletas?pestana=impagas', fuerte: true },
   ]
   const accesos = [
     { t: 'Nueva causa', a: '/causas?nueva=1', i: <IconoCausas /> },
     { t: 'Nuevo retiro', a: '/retiros?nuevo=1', i: <IconoVehiculo /> },
     { t: 'Nueva boleta', a: '/boletas?nueva=1', i: <IconoBoleta /> },
+    { t: 'Nueva factura', a: '/boletas?factura=1', i: <IconoBoleta /> },
     { t: 'Importar Excel', a: '/causas?importar=1', i: <IconoMas /> },
   ]
 
@@ -87,7 +88,7 @@ export function PaginaInicio() {
         <h1 className="font-serif text-3xl font-bold md:text-4xl">Hoy, {fechaLarga}</h1>
         <p className="mt-1 text-tenue">
           {vacia
-            ? 'Bienvenida. Empiece agregando una causa, un retiro o una boleta, o cargue datos de ejemplo en Ajustes para conocer la app.'
+            ? 'Bienvenida. Empiece agregando una causa, un retiro, una boleta o una factura, o cargue datos de ejemplo en Ajustes para conocer la app.'
             : calc.alertas.length
               ? `${plural(calc.alertas.length, 'asunto necesita', 'asuntos necesitan')} su atención.`
               : 'No hay alertas pendientes.'}
@@ -129,7 +130,7 @@ export function PaginaInicio() {
       {/* Alertas */}
       <Seccion titulo="Qué atender primero">
         {calc.alertas.length === 0 ? (
-          <p className="text-lg">Todo al día: no hay causas atrasadas, oficios por vencer ni boletas impagas antiguas.</p>
+          <p className="text-lg">Todo al día: no hay causas atrasadas, oficios por vencer ni boletas o facturas impagas antiguas.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {calc.alertas.map((al) => (
@@ -159,7 +160,7 @@ export function PaginaInicio() {
         </Seccion>
         <Seccion titulo="Cobrado y por cobrar">
           {totalCobro === 0 ? (
-            <p className="py-8 text-center text-tenue">Aún no hay boletas vigentes.</p>
+            <p className="py-8 text-center text-tenue">Aún no hay boletas ni facturas vigentes.</p>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="flex h-6 overflow-hidden rounded-full bg-papel" role="img" aria-label={`Cobrado ${pctCobrado} %, por cobrar ${100 - pctCobrado} %`}>
@@ -179,11 +180,11 @@ export function PaginaInicio() {
                     <span className="inline-block h-3 w-3 rounded-sm bg-serie-cobrar" aria-hidden="true" /> Por cobrar
                   </dt>
                   <dd className="text-xl font-bold cifra">{pesos(ind.porCobrar)}</dd>
-                  <dd className="text-sm text-tenue">{plural(ind.impagas, 'boleta impaga', 'boletas impagas')}</dd>
+                  <dd className="text-sm text-tenue">{plural(ind.impagas, 'documento impago', 'documentos impagos')}</dd>
                 </div>
               </dl>
               <Link to="/boletas" className="self-start font-bold text-petroleo underline-offset-4 hover:underline">
-                Ver boletas
+                Ver boletas y facturas
               </Link>
             </div>
           )}

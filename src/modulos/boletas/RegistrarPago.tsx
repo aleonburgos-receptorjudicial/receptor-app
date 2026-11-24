@@ -1,4 +1,4 @@
-// Registra un pago de una boleta: fecha, monto y medio de pago (puede ser un abono parcial).
+// Registra un pago de una boleta o factura: fecha, monto y medio de pago (puede ser un abono parcial).
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/basedatos'
@@ -8,7 +8,7 @@ import { Boton, Campo, Selector } from '../../compartido/Controles'
 import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
 import { hoyISO, pesos } from '../../utilidades/formato'
-import { saldoBoleta } from './calculos'
+import { nombreDoc, saldoBoleta } from './calculos'
 import { registrarPago } from './servicioBoletas'
 
 export function RegistrarPago({ boleta, alCerrar }: { boleta: Boleta | null; alCerrar: () => void }) {
@@ -41,14 +41,14 @@ export function RegistrarPago({ boleta, alCerrar }: { boleta: Boleta | null; alC
     setError(er)
     if (Object.keys(er).length || !boleta?.id) return
     await registrarPago({ boletaId: boleta.id, fecha, monto: Math.round(monto), medio, nota: nota.trim() || undefined })
-    avisar(monto >= saldo ? `Boleta N° ${boleta.numero} pagada` : `Abono de ${pesos(monto)} registrado`)
+    avisar(monto >= saldo ? `${nombreDoc(boleta)} N° ${boleta.numero} pagada` : `Abono de ${pesos(monto)} registrado`)
     alCerrar()
   }
 
   return (
     <Ventana
       abierta={!!boleta}
-      titulo={`Registrar pago, boleta N° ${boleta?.numero ?? ''}`}
+      titulo={`Registrar pago, ${boleta ? nombreDoc(boleta).toLowerCase() : 'boleta'} N° ${boleta?.numero ?? ''}`}
       alCerrar={alCerrar}
       ancho="max-w-lg"
       pie={

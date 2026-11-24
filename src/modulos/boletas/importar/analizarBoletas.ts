@@ -3,7 +3,7 @@
 import type { Ajustes, Boleta, Causa, Cliente } from '../../../db/tipos'
 import { diasEntre, fechaCL, hoyISO, pesos } from '../../../utilidades/formato'
 import { normalizarRol, nucleoRol } from '../../causas/servicioCausas'
-import { calcularMontos } from '../calculos'
+import { calcularMontos, esFactura } from '../calculos'
 import { encontrarCliente, type DatosBoleta } from '../servicioBoletas'
 import type { BoletaLeida } from './leerArchivosSii'
 
@@ -49,7 +49,8 @@ export function unirLecturas(lecturas: BoletaLeida[]): BoletaLeida[] {
 
 export function analizarBoletas(lecturas: BoletaLeida[], existentes: Boleta[], clientes: Cliente[], causas: Causa[], ajustes: Ajustes): BoletaAnalizada[] {
   const hoy = hoyISO()
-  const porNumero = new Map(existentes.map((b) => [b.numero, b]))
+  // Solo se compara con boletas: las facturas tienen su propia numeración
+  const porNumero = new Map(existentes.filter((b) => !esFactura(b)).map((b) => [b.numero, b]))
   return unirLecturas(lecturas).map((l) => {
     const avisos: string[] = []
     const existente = porNumero.get(l.numero)

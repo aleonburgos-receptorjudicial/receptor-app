@@ -5,13 +5,14 @@ import { db } from '../../db/basedatos'
 import { useAjustes } from '../../db/ajustes'
 import type { Boleta, Pago } from '../../db/tipos'
 import { AreaTexto, Boton, Campo, Opciones, Selector } from '../../compartido/Controles'
-import { useAviso, useConfirmar } from '../../compartido/Dialogos'
+import { useAviso } from '../../compartido/Dialogos'
 import { Ventana } from '../../compartido/Ventana'
-import { fechaCL, hoyISO, pesos } from '../../utilidades/formato'
+import { hoyISO, pesos } from '../../utilidades/formato'
 import { contiene } from '../../utilidades/texto'
 import { FormularioCliente } from '../clientes/FormularioCliente'
-import { calcularMontos, saldoBoleta, totalPagado } from './calculos'
-import { boletaPorNumero, eliminarPago, guardarBoleta, validarBoleta, type DatosBoleta, type ErroresBoleta } from './servicioBoletas'
+import { calcularMontos } from './calculos'
+import { PagosDocumento } from './PagosDocumento'
+import { documentoRepetido, guardarBoleta, validarBoleta, type DatosBoleta, type ErroresBoleta } from './servicioBoletas'
 
 const QUIEN = { cliente: 'El cliente (se le cobra el líquido)', yo: 'Yo (se le cobra el bruto)' } as const
 
@@ -28,7 +29,6 @@ export function FormularioBoleta({
 }) {
   const ajustes = useAjustes()
   const avisar = useAviso()
-  const confirmar = useConfirmar()
   const [d, setD] = useState<DatosBoleta | null>(null)
   const [errores, setErrores] = useState<ErroresBoleta>({})
   const [nuevoCliente, setNuevoCliente] = useState(false)
@@ -51,10 +51,11 @@ export function FormularioBoleta({
       const { id: _i, creado: _c, actualizado: _a, ejemplo: _e, ...resto } = boleta
       setD(resto)
     } else {
-      // Se propone el número siguiente al más alto guardado
+      // Se propone el número siguiente al de la última boleta (las facturas tienen otra numeración)
       db.boletas
-        .orderBy('numero')
-        .last()
+        .filter((b) => b.tipoDocumento !== 'factura')
+        .toArray()
+        .then((lista) => lista.sort((a, b) => a.numero - b.numero).pop())
         .then((ultima) =>
           setD({
             numero: (ultima?.numero ?? 0) + 1,
@@ -91,7 +92,7 @@ export function FormularioBoleta({
 
   const guardar = async () => {
     const { errores: er, datos: limpio } = validarBoleta(d)
-    if (!er.numero && (await boletaPorNumero(limpio.numero, boleta?.id))) er.numero = `Ya existe la boleta N° ${limpio.numero}.`
+    if (!er.numero && (await documentoRepetido(limpio, boleta?.id))) er.numero = `Ya existe la boleta N° ${limpio.numero}.`
     setErrores(er)
     if (Object.values(er).some(Boolean)) {
       avisar('Revise los campos marcados en rojo.', 'error')
@@ -102,19 +103,11 @@ export function FormularioBoleta({
     alCerrar()
   }
 
-  const quitarPago = async (p: Pago) => {
-    const ok = await confirmar({ titulo: 'Eliminar pago', mensaje: `¿Eliminar el pago de ${pesos(p.monto)} del ${fechaCL(p.fecha)}?`, textoConfirmar: 'Eliminar', peligro: true })
-    if (!ok) return
-    await eliminarPago(p.id!)
-    avisar('Pago eliminado')
-  }
-
   // Causas para asociar: primero las del mismo cliente
   const causas = datos.causas
     .filter((c) => (d.causaIds ?? []).includes(c.id!) || !buscaCausa || contiene(c.rol, buscaCausa) || contiene(c.demandado, buscaCausa))
     .sort((a, b) => Number((d.causaIds ?? []).includes(b.id!)) - Number((d.causaIds ?? []).includes(a.id!)) || Number(b.clienteId === d.clienteId) - Number(a.clienteId === d.clienteId) || b.fechaEncargo.localeCompare(a.fechaEncargo))
     .slice(0, 30)
-  const pagado = boleta ? totalPagado(boleta, datos.pagos) : 0
 
   return (
     <>
@@ -206,43 +199,7 @@ export function FormularioBoleta({
           <button type="submit" hidden />
         </form>
 
-        {boleta && boleta.estado !== 'Anulada' && (
-          <section className="mt-6 flex flex-col gap-3 rounded-xl border border-borde p-4" aria-labelledby="titulo-pagos">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 id="titulo-pagos" className="font-serif text-lg font-bold">
-                Pagos
-              </h3>
-              {saldoBoleta(boleta, datos.pagos) > 0 && (
-                <Boton variante="secundario" className="min-h-10 py-1" onClick={() => alRegistrarPago(boleta)}>
-                  Registrar pago
-                </Boton>
-              )}
-            </div>
-            {datos.pagos.length === 0 ? (
-              <p className="text-tenue">Sin pagos registrados.</p>
-            ) : (
-              <ul className="divide-y divide-borde">
-                {datos.pagos
-                  .sort((a, b) => a.fecha.localeCompare(b.fecha))
-                  .map((p) => (
-                    <li key={p.id} className="flex flex-wrap items-center gap-2 py-2">
-                      <span className="flex-1">
-                        <span className="font-bold cifra">{pesos(p.monto)}</span> el <span className="cifra">{fechaCL(p.fecha)}</span>, {p.medio.toLowerCase()}
-                        {p.nota && <span className="block text-sm text-tenue">{p.nota}</span>}
-                      </span>
-                      <Boton variante="discreto" className="min-h-10 py-1 text-rojo" onClick={() => quitarPago(p)}>
-                        Eliminar pago
-                      </Boton>
-                    </li>
-                  ))}
-              </ul>
-            )}
-            <p className="text-sm text-tenue cifra">
-              Pagado {pesos(pagado)} de {pesos(boleta.montoCobrar)}
-              {saldoBoleta(boleta, datos.pagos) > 0 ? `; falta ${pesos(saldoBoleta(boleta, datos.pagos))}` : ''}
-            </p>
-          </section>
-        )}
+        {boleta && <PagosDocumento documento={boleta} pagos={datos.pagos} alRegistrarPago={alRegistrarPago} />}
 
         <section className="mt-6 flex flex-col gap-3 rounded-xl border border-borde p-4" aria-labelledby="titulo-causas-boleta">
           <h3 id="titulo-causas-boleta" className="font-serif text-lg font-bold">

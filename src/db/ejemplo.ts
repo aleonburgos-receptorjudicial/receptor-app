@@ -116,7 +116,45 @@ export async function cargarDatosEjemplo(): Promise<void> {
       await db.boletas.update(b3, { causaIds: [e45.id] })
     }
 
+    // Facturas de una empresa ficticia de la receptora (IVA 19 %)
+    const factura = (numero: number, clienteId: number, cliente: Cliente, neto: number, exento: number, dias: number, estado: Boleta['estado'], glosa: string): Boleta => {
+      const iva = Math.round(neto * 0.19)
+      const total = neto + exento + iva
+      return {
+        ...base,
+        tipoDocumento: 'factura',
+        empresaRut: '76.086.428-5',
+        empresaNombre: 'Servicios Ficticios SpA',
+        numero,
+        fechaEmision: sumarDias(hoy, -dias),
+        clienteId,
+        nombreCliente: cliente.nombre,
+        rutCliente: cliente.rut,
+        glosa,
+        neto,
+        exento,
+        iva,
+        bruto: total,
+        porcentajeRetencion: 0,
+        retencion: 0,
+        liquido: total,
+        pagaRetencion: 'Cliente',
+        montoCobrar: total,
+        estado,
+        origen: 'manual',
+      }
+    }
+    const [f1] = (await db.boletas.bulkAdd(
+      [
+        factura(501, perez, clientes[0], 200000, 0, 40, 'Pagada', 'Asesoría en gestión documental'),
+        factura(502, fuentes, clientes[2], 150000, 0, 12, 'Pendiente', 'Servicio de archivo y digitalización'),
+        factura(503, biobio, clientes[3], 0, 80000, 65, 'Pendiente', 'Capacitación (exenta)'),
+      ],
+      { allKeys: true },
+    )) as number[]
+
     const pagos: Pago[] = [
+      { ...base, boletaId: f1, fecha: sumarDias(hoy, -20), monto: 238000, medio: 'Transferencia' },
       { ...base, boletaId: b1, fecha: sumarDias(hoy, -25), monto: 72038, medio: 'Transferencia' },
       { ...base, boletaId: b3, fecha: sumarDias(hoy, -30), monto: 101700, medio: 'Transferencia' },
       { ...base, boletaId: b6, fecha: sumarDias(hoy, -10), monto: 50000, medio: 'Depósito', nota: 'Abono parcial' },

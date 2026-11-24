@@ -50,6 +50,9 @@ export default defineConfig({
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallback: 'index.html',
           cleanupOutdatedCaches: true,
+          // La versión nueva reemplaza a la anterior apenas se descarga (sin esperar a que se cierren todas las ventanas)
+          skipWaiting: true,
+          clientsClaim: true,
         },
       }),
   ],
