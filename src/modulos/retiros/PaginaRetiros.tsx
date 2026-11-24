@@ -1,5 +1,5 @@
 // Pantalla de Retiros de vehículos: registro aparte de las causas, con vencimientos y alertas.
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
 import { db } from '../../db/basedatos'
@@ -20,6 +20,9 @@ import { abrirArchivo } from './servicioArchivos'
 import { eliminarRetiro, valorCampo } from './servicioRetiros'
 import { alertasRetiro, diasDesdeEncargo, diasRestantes, nivelVencimiento, retiroActivo, textoVencimiento, type NivelVencimiento } from './vencimiento'
 
+// La importación usa SheetJS (pesado): se carga solo al abrirla
+const ImportarRetiros = lazy(() => import('./importar/ImportarRetiros').then((m) => ({ default: m.ImportarRetiros })))
+
 const estiloFiltro = 'min-h-12 w-full rounded-lg border-2 border-borde bg-superficie px-2 focus:border-petroleo focus:outline-none'
 
 export function PaginaRetiros() {
@@ -34,8 +37,9 @@ export function PaginaRetiros() {
   const [formAbierto, setFormAbierto] = useState(false)
   const [retirando, setRetirando] = useState<Retiro | null>(null)
   const [exportando, setExportando] = useState(false)
+  const [importando, setImportando] = useState(false)
   const [parametros, setParametros] = useSearchParams()
-  // Enlaces desde Inicio: ?vence=vencido|renovar|prioridad y ?nuevo=1
+  // Enlaces desde Inicio: ?vence=vencido|renovar|prioridad, ?nuevo=1 e ?importar=1
   useEffect(() => {
     const v = parametros.get('vence')
     if (v) {
@@ -45,8 +49,12 @@ export function PaginaRetiros() {
     if (parametros.get('nuevo') === '1') {
       setEditando(undefined)
       setFormAbierto(true)
+    }
+    if (parametros.get('importar') === '1') setImportando(true)
+    if (parametros.has('nuevo') || parametros.has('importar')) {
       const resto = new URLSearchParams(parametros)
       resto.delete('nuevo')
+      resto.delete('importar')
       setParametros(resto, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,8 +220,11 @@ export function PaginaRetiros() {
         }
         acciones={
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+            <Boton variante="secundario" className={`order-2 sm:order-none ${total > 0 ? '' : 'col-span-2'}`} onClick={() => setImportando(true)}>
+              Importar Excel
+            </Boton>
             {total > 0 && (
-              <Boton variante="secundario" className="order-2 col-span-2 sm:order-none" onClick={() => setExportando(true)}>
+              <Boton variante="secundario" className="order-2 sm:order-none" onClick={() => setExportando(true)}>
                 Exportar Excel
               </Boton>
             )}
@@ -227,11 +238,16 @@ export function PaginaRetiros() {
       {total === 0 ? (
         <SinDatos
           titulo="Aún no hay retiros de vehículos"
-          texto="Ingrese el primer retiro con su fecha de vencimiento. La app le avisará cuando esté por vencer."
+          texto="Ingrese el primer retiro con su fecha de vencimiento, o cargue varios de una vez desde un Excel. La app le avisará cuando estén por vencer."
           accion={
-            <Boton icono={<IconoMas />} onClick={abrirNuevo}>
-              Nuevo retiro
-            </Boton>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Boton icono={<IconoMas />} onClick={abrirNuevo}>
+                Nuevo retiro
+              </Boton>
+              <Boton variante="secundario" onClick={() => setImportando(true)}>
+                Importar Excel
+              </Boton>
+            </div>
           }
         />
       ) : (
@@ -298,6 +314,7 @@ export function PaginaRetiros() {
                           >
                             <span className={`w-full font-bold ${g.color}`}>{g.detalle(r)}</span>
                             <span className="font-serif font-bold cifra">{r.rol}</span>
+                            {r.tribunal && <span className="text-sm">{r.tribunal}</span>}
                             <span>{r.patente ?? 'Sin patente'}</span>
                             <span className="text-tenue">{r.deudor ?? ''}</span>
                           </button>
@@ -390,7 +407,7 @@ export function PaginaRetiros() {
                   <thead className="border-b-2 border-borde bg-papel text-tenue">
                     <tr>
                       <th className="px-3 py-3">Vehículo</th>
-                      <th className="px-3 py-3">ROL y cliente</th>
+                      <th className="px-3 py-3">ROL, juzgado y cliente</th>
                       <th className="px-3 py-3">Demandado y martillero</th>
                       <th className="px-3 py-3">Oficio</th>
                       <th className="px-3 py-3">Estado</th>
@@ -413,7 +430,8 @@ export function PaginaRetiros() {
                           </td>
                           <td className="px-3 py-3">
                             <span className="whitespace-nowrap font-serif text-lg font-bold cifra">{r.rol}</span>
-                            <span className="block">{r.clienteId ? nombreCliente.get(r.clienteId) : <span className="text-tenue">Sin cliente</span>}</span>
+                            <Juzgado tribunal={r.tribunal} />
+                            <span className="mt-1 block">{r.clienteId ? nombreCliente.get(r.clienteId) : <span className="text-tenue">Sin cliente</span>}</span>
                             {r.mandante && <span className="block text-sm text-tenue">{r.mandante}</span>}
                           </td>
                           <td className="px-3 py-3">
@@ -435,7 +453,6 @@ export function PaginaRetiros() {
                             <span className="block text-sm text-tenue cifra">
                               Encargo {fechaCL(r.fechaEncargo)}, hace {plural(diasEncargo(r), 'día', 'días')}
                             </span>
-                            <span className="block max-w-48 whitespace-normal text-sm text-tenue">{r.tribunal}</span>
                           </td>
                           <td className="px-3 py-3">
                             <span className="flex flex-col items-start gap-1">
@@ -481,6 +498,7 @@ export function PaginaRetiros() {
                       </div>
                       <p className="mt-2 text-tenue">{vehiculo(r) || 'Sin datos del vehículo'}</p>
                       <p className="mt-2 font-serif text-lg font-bold cifra">ROL {r.rol}</p>
+                      <Juzgado tribunal={r.tribunal} />
                       <p className="text-lg font-bold">{r.deudor ?? <span className="font-normal text-tenue">Demandado sin nombre</span>}</p>
                       {r.direccion && <p className="whitespace-pre-line">{r.direccion}</p>}
                       <p className="text-tenue">
@@ -552,6 +570,11 @@ export function PaginaRetiros() {
 
       <FormularioRetiro abierta={formAbierto} retiro={editando} alCerrar={() => setFormAbierto(false)} />
       <RegistrarRetiro retiro={retirando} alCerrar={() => setRetirando(null)} />
+      {importando && (
+        <Suspense fallback={null}>
+          <ImportarRetiros abierta={importando} alCerrar={() => setImportando(false)} />
+        </Suspense>
+      )}
       <Ventana
         abierta={exportando}
         titulo="Exportar retiros a Excel"
@@ -572,5 +595,17 @@ export function PaginaRetiros() {
         </div>
       </Ventana>
     </div>
+  )
+}
+
+/** Juzgado de la causa, justo bajo el ROL */
+function Juzgado({ tribunal }: { tribunal?: string }) {
+  return tribunal ? (
+    <span className="block max-w-64 text-sm leading-snug">
+      <span className="text-tenue">Juzgado: </span>
+      {tribunal}
+    </span>
+  ) : (
+    <span className="block text-sm text-tenue">Juzgado sin indicar</span>
   )
 }
